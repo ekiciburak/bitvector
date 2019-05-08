@@ -155,6 +155,20 @@ Proof. intros.
         exists x. easy.
 Qed.
 
+Theorem bvashr_ugt2_rtl: forall (n : N), forall (s t : bitvector n),
+    ((bv_slt s (bv_shr_a s (bv_not t)) = true) \/ (bv_ult t s = true)) ->
+    (exists (x : bitvector n), (bv_ugt (bv_ashr_a s x) t = true)).
+Proof. intros. 
+        destruct s as (s, Hs).
+        destruct t as (t, Ht).
+        unfold bv_ugt, bv_ult, bv_slt, bv_ashr_a, bv in *. cbn in *.
+        specialize (bvashr_ugt2_rtl n s t Hs Ht); intros.
+        unfold RAWBITVECTOR_LIST.bv_not, RAWBITVECTOR_LIST.bits in H0.
+        specialize (H0 H).
+        destruct H0 as (x, (Hx, p)).
+       exists (@MkBitvector n x Hx). easy.
+Qed.
+
 Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector n), 
     (bv_ult t (bv_shr (bv_not s) s) = true) -> 
     (exists (x : bitvector n), bv_ugt (bv_shr x s) t = true).

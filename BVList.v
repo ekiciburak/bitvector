@@ -6316,6 +6316,42 @@ Proof. intros.
         - now rewrite hd_rev.
 Qed.
 
+Lemma ult_list_be_nrefl: forall a, ult_list_big_endian a a = false.
+Proof. intro a.
+       induction a; intros.
+       - easy.
+       - cbn. case_eq a0; intros.
+         + Reconstr.reasy (@Coq.Bool.Bool.andb_negb_r) Reconstr.Empty.
+         + rewrite <- H. rewrite IHa. 
+           Reconstr.rsimple (@Coq.Bool.Bool.andb_false_r, 
+             @Coq.Bool.Bool.negb_true_iff, 
+             @Coq.Bool.Bool.andb_false_l, 
+             @Coq.Bool.Bool.eqb_reflx) 
+            (@Coq.Init.Datatypes.orb, @Coq.Init.Datatypes.negb).
+Qed.
+
+
+Lemma bv_slt_be_nrefl: forall a, slt_list_big_endian a a = false.
+Proof. intro a.
+       induction a; intros.
+       - now cbn.
+       - cbn. case_eq a0; intros.
+         + Reconstr.reasy (@Coq.Bool.Bool.andb_negb_r) Reconstr.Empty.
+         + rewrite ult_list_be_nrefl. 
+           Reconstr.reasy (@Coq.Bool.Bool.andb_false_r,
+             @Coq.Bool.Bool.andb_negb_r) (@Coq.Init.Datatypes.is_true, 
+             @Coq.Init.Datatypes.andb, @Coq.Bool.Bool.eqb, @Coq.Init.Datatypes.orb).
+Qed.
+
+Lemma bv_slt_nrefl: forall a, bv_slt a a = false.
+Proof. intro a.
+       unfold bv_slt.
+       rewrite N.eqb_refl.
+       induction a; intros.
+       - easy.
+       - cbn in *. now rewrite bv_slt_be_nrefl.
+Qed.
+
 Lemma mk_list_false_not_true: forall l,
   l <> mk_list_true (length l) -> bv_not l <> mk_list_false (length l).
 Proof. intro l.
