@@ -121,6 +121,26 @@ Proof. intros.
         exists x. easy.
 Qed.
 
+Theorem bvashr_ult2_rtl : forall (n : N), forall (s t : bitvector n),
+     (((bv_ult s t = true) \/ (bv_slt s (zeros n)) = false) /\
+     (bv_eq t (zeros n)) = false) ->
+     (exists (x : bitvector n), (bv_ult (bv_ashr_a s x) t = true)).
+Proof. intros. 
+        destruct H as (H1, H2).
+        destruct s as (s, H).
+        destruct t as (t, H0).
+        unfold bv_ult, bv_slt, bv_ashr_a, bv_eq, bv in *. cbn in *.
+        specialize (InvCond.bvashr_ult2_rtl n s t H H0); intros.
+        rewrite H0, H in H3.
+        assert ((RAWBITVECTOR_LIST.bv_ult s t = true \/
+                 RAWBITVECTOR_LIST.bv_slt s (RAWBITVECTOR_LIST.zeros n) = false) /\
+                 RAWBITVECTOR_LIST.bv_eq t (RAWBITVECTOR_LIST.zeros n) = false). 
+        split; easy.
+        specialize (H3 H4).
+        destruct H3 as (x, (Hx, p)).
+        exists (@MkBitvector n x Hx). easy.
+Qed.
+
 Theorem bvashr_ugt2_ltr: forall (n : N), forall (s t : bitvector n),
     (exists (x : bitvector n), (bv_ugt (bv_ashr_a s x) t = true)) ->
     ((bv_slt s (bv_shr_a s (bv_not t)) = true) \/ (bv_ult t s = true)).

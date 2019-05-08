@@ -6362,6 +6362,24 @@ Proof. intros.
 Qed.
 
 
+Lemma pos_pow: forall n: nat, (n > 0)%nat -> (2^n - 1 >= n)%nat. 
+Proof. intro n.
+       induction n; intros.
+       - easy.
+       - cbn. rewrite <- plus_n_O.
+         case_eq n; intros.
+         + cbn. lia.
+         + assert ( (n > 0)%nat ). lia.
+           specialize (IHn H1). rewrite H0 in IHn.
+           cbn in IHn.  rewrite <- plus_n_O in IHn.
+           cbn. lia.
+Qed.
+
+Lemma pos_powN: forall n: N, (N.to_nat n > 0)%nat -> (2^(N.to_nat n) - 1 >= (N.to_nat n))%nat.
+Proof. intros. Reconstr.rsimple (@RAWBITVECTOR_LIST.pos_pow) Reconstr.Empty.
+Qed.
+
+
 End RAWBITVECTOR_LIST.
 
 Module BITVECTOR_LIST <: BITVECTOR.

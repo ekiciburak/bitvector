@@ -1040,7 +1040,14 @@ Proof. intros n s t Hs Ht (Ha, Hb).
             lia.
             Reconstr.rsimple (@BV.BVList.RAWBITVECTOR_LIST.zeros_size) Reconstr.Empty.
           - Reconstr.reasy (@Coq.NArith.BinNat.N.eqb_refl) Reconstr.Empty.
-          - assert ( (eqb (last s false) false) = true) by admit.
+          - assert ( (eqb (last s false) false) = true).
+            { Reconstr.rsimple (@BV.BVList.RAWBITVECTOR_LIST.last_mk_list_false, 
+               @BV.BVList.RAWBITVECTOR_LIST.length_mk_list_false, 
+               @Coq.NArith.Nnat.N2Nat.id, @BV.BVList.RAWBITVECTOR_LIST.bv_slt_tf) 
+              (@BV.BVList.RAWBITVECTOR_LIST.size,
+               @BV.BVList.RAWBITVECTOR_LIST.zeros, 
+               @Coq.Bool.Bool.eqb,
+               @BV.BVList.RAWBITVECTOR_LIST.bitvector). }
             rewrite bv_slt_ult_last_eq with (d:= false) in Ha.
             rewrite bv_ult_nat in *.
             destruct (list_cases_all_false s).
@@ -1095,14 +1102,33 @@ Proof. intros n s t Hs Ht (Ha, Hb).
                   assert (eqb (last (mk_list_false (length s)) false) false = true).
                   Reconstr.reasy Reconstr.Empty Reconstr.Empty.
                   rewrite H4.
-                  unfold zeros, size.
-                  rewrite Nat2N.id, !length_mk_list_false.
-                  admit.
+                  assert (t <> (zeros (size t))).
+                  { unfold bv_eq in Hb.
+                    assert ((size (zeros (size t)))%N = n).
+                    Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.zeros_size) Reconstr.Empty.
+                    rewrite H5, Ht, N.eqb_refl in Hb. apply List_neq in Hb.
+                    Reconstr.reasy Reconstr.Empty Reconstr.Empty. }
+                  unfold zeros, size. rewrite Nat2N.id. 
+                  rewrite length_mk_list_false. 
+                  rewrite list2N_mk_list_false. 
+                  Reconstr.rblast (@BV.BVList.RAWBITVECTOR_LIST.of_bits_size, 
+                    @BV.BVList.RAWBITVECTOR_LIST.gt0_nmk_list_false, 
+                    @BV.BVList.RAWBITVECTOR_LIST.skipn_nm_false, 
+                    @BV.BVList.RAWBITVECTOR_LIST.list2N_mk_list_false, 
+                    @Coq.NArith.Nnat.Nat2N.id, 
+                    @BV.BVList.BITVECTOR_LIST.of_bits_size) 
+                   (@BV.BVList.RAWBITVECTOR_LIST.list2nat_be_a, 
+                    @Coq.NArith.BinNatDef.N.of_nat,
+                    @BV.BVList.RAWBITVECTOR_LIST.zeros, 
+                    @BV.BVList.RAWBITVECTOR_LIST.bitvector, 
+                    @BV.BVList.RAWBITVECTOR_LIST.size, 
+                    @BV.BVList.RAWBITVECTOR_LIST.bv2nat_a).
               ** Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.bv_ashr_a_size,
                    @BV.BVList.RAWBITVECTOR_LIST.zeros_size, 
                    @BV.BVList.NBoolEqualityFacts.eqb_refl) Reconstr.Empty.
             + exists (mk_list_true (N.to_nat n)). 
-              split. admit.
+              split. Reconstr.rcrush (@BV.BVList.RAWBITVECTOR_LIST.length_mk_list_true,
+                       @Coq.NArith.Nnat.N2Nat.id) (@BV.BVList.RAWBITVECTOR_LIST.size).
               unfold bv_ashr_a, ashr_aux_a, ashr_n_bits_a, list2nat_be_a.
               unfold bv2nat_a, list2nat_be_a in Ha.
               unfold size in *. rewrite Hs, length_mk_list_true, N2Nat.id, N.eqb_refl.
@@ -1116,12 +1142,42 @@ Proof. intros n s t Hs Ht (Ha, Hb).
                  @BV.BVList.RAWBITVECTOR_LIST.bitvector).
               assert (N.to_nat (list2N (mk_list_true (N.to_nat (N.pos p)))) <? length s = false).
               rewrite <- H1.
-              admit.
-              rewrite H2. rewrite H. admit.
+              assert (length s = N.to_nat n).
+              Reconstr.rcrush (@BV.BVList.BITVECTOR_LIST.of_bits_size, 
+                 @BV.BVList.RAWBITVECTOR_LIST.of_bits_size) 
+                (@BV.BVList.RAWBITVECTOR_LIST.bitvector).
+              rewrite H2. rewrite Nat.ltb_ge. rewrite pow_eqb_0.
+              apply pos_powN. lia. 
+              rewrite H2. rewrite H. 
+              rewrite bv_ult_nat.
+              assert (t <> (zeros (size t))).
+              { unfold bv_eq in Hb.
+                assert (size (zeros (N.of_nat (length t))) = size t).
+                Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.zeros_size) Reconstr.Empty.
+                rewrite H3, Ht, N.eqb_refl in Hb. apply List_neq in Hb.
+                Reconstr.rcrush Reconstr.Empty (@BV.BVList.RAWBITVECTOR_LIST.size). }
+              Reconstr.rblast (@BV.BVList.RAWBITVECTOR_LIST.gt0_nmk_list_false, 
+               @BV.BVList.RAWBITVECTOR_LIST.list2N_mk_list_false, 
+               @BV.BVList.RAWBITVECTOR_LIST.of_bits_size, 
+               @BV.BVList.BITVECTOR_LIST.of_bits_size,
+               @Coq.NArith.Nnat.Nat2N.id) (@BV.BVList.RAWBITVECTOR_LIST.list2nat_be_a,
+               @BV.BVList.RAWBITVECTOR_LIST.bv2nat_a, 
+               @Coq.NArith.BinNatDef.N.of_nat, @BV.BVList.RAWBITVECTOR_LIST.size, 
+               @BV.BVList.RAWBITVECTOR_LIST.zeros, 
+               @BV.BVList.RAWBITVECTOR_LIST.bitvector).
+               Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.of_bits_size, 
+                 @BV.BVList.RAWBITVECTOR_LIST.length_mk_list_false, 
+                 @BV.BVList.BITVECTOR_LIST.of_bits_size, 
+                 @BV.BVList.NBoolEqualityFacts.eqb_refl) 
+                (@BV.BVList.RAWBITVECTOR_LIST.size,
+                 @BV.BVList.RAWBITVECTOR_LIST.bitvector).
              + Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.zeros_size,
                  @BV.BVList.NBoolEqualityFacts.eqb_refl) Reconstr.Empty.
-             + admit.
-Admitted.
+             + unfold zeros, size. rewrite Nat2N.id.
+               rewrite last_mk_list_false. apply Bool.eqb_eq.
+               rewrite H.
+               easy.
+Qed.
 
 (* (exists x, (s >>a s) <u t) <=> ((s <u t \/ s >=s 0) /\ t != 0) *)
 Theorem bvashr_ult2 : forall (n : N), forall (s t : bitvector),
