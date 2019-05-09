@@ -1041,13 +1041,7 @@ Proof. intros n s t Hs Ht (Ha, Hb).
             Reconstr.rsimple (@BV.BVList.RAWBITVECTOR_LIST.zeros_size) Reconstr.Empty.
           - Reconstr.reasy (@Coq.NArith.BinNat.N.eqb_refl) Reconstr.Empty.
           - assert ( (eqb (last s false) false) = true).
-            { Reconstr.rsimple (@BV.BVList.RAWBITVECTOR_LIST.last_mk_list_false, 
-               @BV.BVList.RAWBITVECTOR_LIST.length_mk_list_false, 
-               @Coq.NArith.Nnat.N2Nat.id, @BV.BVList.RAWBITVECTOR_LIST.bv_slt_tf) 
-              (@BV.BVList.RAWBITVECTOR_LIST.size,
-               @BV.BVList.RAWBITVECTOR_LIST.zeros, 
-               @Coq.Bool.Bool.eqb,
-               @BV.BVList.RAWBITVECTOR_LIST.bitvector). }
+            { apply bv_slt_false_zeros in Ha. easy. }
             rewrite bv_slt_ult_last_eq with (d:= false) in Ha.
             rewrite bv_ult_nat in *.
             destruct (list_cases_all_false s).

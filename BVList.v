@@ -6316,6 +6316,39 @@ Proof. intros.
         - now rewrite hd_rev.
 Qed.
 
+Lemma bv_slt_false_zeros: forall a, bv_slt a (zeros (size a)) = false -> 
+  eqb (last a false) false = true.
+Proof. intros.
+        unfold bv_slt in H. 
+        rewrite zeros_size, N.eqb_refl in H.
+        unfold slt_list in H.
+        induction a using rev_ind; intros.
+        - now cbn.
+        - cbn in *. case_eq x; intros.
+          + subst. assert ((rev (a ++ [true])) = (true :: rev a)).
+            Reconstr.reasy (@Coq.Lists.List.rev_unit) Reconstr.Empty.
+            rewrite H0 in H.
+            assert ((rev (zeros (size (a ++ [true])))) =  (zeros (size (a ++ [true])))).
+            Reconstr.reasy (@RAWBITVECTOR_LIST.rev_mk_list_false) (@RAWBITVECTOR_LIST.zeros, @RAWBITVECTOR_LIST.bitvector).
+            rewrite slt_list_be_ft with (d := false) in H.
+            easy.
+            cbn. rewrite !rev_length. unfold zeros.
+            rewrite length_mk_list_false. unfold size.
+            rewrite Nat2N.id.
+            Reconstr.reasy (@RAWBITVECTOR_LIST.mk_list_true_app,
+               @RAWBITVECTOR_LIST.length_mk_list_true, 
+               @Coq.Lists.List.app_length) Reconstr.Empty.
+            now cbn.
+            rewrite H1. unfold size, zeros.
+            rewrite Nat2N.id.
+            Reconstr.rsimple (@Coq.NArith.Nnat.Nat2N.id, 
+              @Coq.Lists.List.length_zero_iff_nil) 
+             (@RAWBITVECTOR_LIST.mk_list_false, 
+              @RAWBITVECTOR_LIST.size, 
+              @RAWBITVECTOR_LIST.zeros, @Coq.Lists.List.hd).
+           + Reconstr.reasy (@RAWBITVECTOR_LIST.last_app) (@Coq.Bool.Bool.eqb).
+Qed.
+
 Lemma ult_list_be_nrefl: forall a, ult_list_big_endian a a = false.
 Proof. intro a.
        induction a; intros.
