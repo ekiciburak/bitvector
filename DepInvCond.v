@@ -166,7 +166,7 @@ Proof. intros.
         unfold RAWBITVECTOR_LIST.bv_not, RAWBITVECTOR_LIST.bits in H0.
         specialize (H0 H).
         destruct H0 as (x, (Hx, p)).
-       exists (@MkBitvector n x Hx). easy.
+        exists (@MkBitvector n x Hx). easy.
 Qed.
 
 Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector n), 

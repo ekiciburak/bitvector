@@ -1,10 +1,11 @@
-From BV Require Import BVList.
 
+(* From Hammer Require Import Hammer Reconstr. *)
+From BV Require Import BVList Reconstr.
 Import RAWBITVECTOR_LIST.
 
 Require Import List Bool NArith Psatz (*Int63*) ZArith Nnat.
 
-From Hammer Require Import Hammer Reconstr.
+
 
 (* Start Practice:
  forall x : bitvector, size(x) >= 0*)
@@ -506,7 +507,6 @@ Proof. intros n s t Hs Ht.
          rewrite bv_shl_eq.
          easy.
 Qed.
-
 
 (* (exists x, x << s != t) => t != 0 or s <u size(s) *)
 Theorem bvshl_neq_ltr: forall (n : N), forall (s t : bitvector), 
