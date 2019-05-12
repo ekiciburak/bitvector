@@ -7,5 +7,5 @@ However, one does not need to install Coqhammer to be able to compile the librar
 since all such tactics are in `Reconstr.v`.
 
 To make:
-	1. `coq_makefile -f _CoqProject -o Makefile`
-	2. `make`
+1. `coq_makefile -f _CoqProject -o Makefile`
+2. `make`
