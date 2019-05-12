@@ -508,6 +508,30 @@ Proof. intros n s t Hs Ht.
          easy.
 Qed.
 
+Theorem bvshl_ugt : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    (bv_ult t (bv_shl (bv_not (zeros (size s))) s) = true)
+    (exists (x : bitvector), (size x = n) /\ (bv_ugt (bv_shl x s) t = true)).
+Proof.
+  intros n s t Hs Ht. split. 
+  + intro. exists (bv_not (zeros (size s))).
+    split. 
+    - apply bv_not_size. rewrite (zeros_size (size s)). 
+      apply  Hs. 
+    - apply bv_ult_bv_ugt. apply H.
+  + intros. destruct H as (x, (Hx, H1)).
+    apply bv_ugt_bv_ult in H1. rewrite bv_shl_eq in *. 
+    assert (forall (n : N) (x s : bitvector), size x = n 
+            -> size s = n -> 
+            bv_uleP (bv_shl_a x s) 
+              (bv_shl_a (bv_not (zeros (size s))) s)).
+    { apply bv_shl_a_1_leq. }
+    specialize (@H n x s Hx Hs). apply bv_ule_B2P in H.
+    pose proof (@bv_ult_ule_list_trans t (bv_shl_a x s)
+                (bv_shl_a (bv_not (zeros (size s))) s) H1 H).
+    apply H0.
+Qed.
+
 (* (exists x, x << s != t) => t != 0 or s <u size(s) *)
 Theorem bvshl_neq_ltr: forall (n : N), forall (s t : bitvector), 
   (size s) = n -> (size t) = n ->
@@ -619,35 +643,7 @@ Theorem bvshl_ult2 : forall (n : N), forall (s t : bitvector),
 Proof.
 Admitted.
 
-(* (exists x, x << s >u t) <=> (t <u (~0 << s)) *)
-Theorem bvshl_ugt : forall (n : N), forall (s t : bitvector),
-  (size s) = n -> (size t) = n -> iff
-    (exists (x : bitvector), (size x = n) /\ (bv_ugtP (bv_shl x s) t))
-    (bv_ultP t (bv_shl (bv_not (zeros (size s))) s)).
-Proof.
-  intros n s t Hs Ht.
-  split. 
-  + intros. destruct H as (x, (Hx, H1)).
-    apply bv_ugtP_bv_ultP in H1. rewrite bv_shl_eq in *. 
-    assert (forall (n : N) (x s : bitvector), size x = n 
-            -> size s = n -> 
-            bv_uleP (bv_shl_a x s) 
-              (bv_shl_a (bv_not (zeros (size s))) s)).
-    { apply bv_shl_a_1_leq. }
-    assert (bv_ultP_eq_trans : forall b1 b2 b3 : bitvector, 
-            bv_ultP b1 b2 -> bv_uleP b2 b3 -> 
-            bv_ultP b1 b3).
-    { apply bv_ult_uleP_trans. }
-    specialize (@H n x s Hx Hs).
-    specialize (@bv_ultP_eq_trans t (bv_shl_a x s) 
-              (bv_shl_a (bv_not (zeros (size s))) s) H1 H).
-    apply bv_ultP_eq_trans.
-  + intro. exists (bv_not (zeros (size s))).
-    split. 
-    - apply bv_not_size. rewrite (zeros_size (size s)). 
-      apply  Hs. 
-    - apply bv_ultP_bv_ugtP. apply H.
-Qed.
+
 
 (* (exists x, (s << x) >u t) <=> 
    (exists i, 0 <= i < size(s), (s << i) >u t) *)
