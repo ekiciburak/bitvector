@@ -3600,6 +3600,16 @@ Proof. intros n a b H0 H1. unfold bv_add, bv_subt', add_list, size, bits in *.
   rewrite <- H0 in H1. now apply Nat2N.inj in H1.
 Qed.
 
+Theorem bvadd_U: forall (n : N),
+  forall (s t x: bitvector), (size s) = n /\ (size t) = n /\ (size x) = n ->
+  (bv_add x s) = t <-> (x = (bv_subt' t s)).
+Proof. intros n s t x (Hs, (Ht, Hx)).
+  split; intro A.
+  - rewrite <- A. symmetry. exact (@bv_subt'_add n x s Hx Hs).
+  - rewrite A. exact (bv_add_subst_opp Ht Hs).
+Qed.
+
+
  (* bitvector MULT properties *) 
 
 Lemma prop_mult_bool_step_k_h_len: forall a b c k,

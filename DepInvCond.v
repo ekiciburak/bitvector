@@ -219,7 +219,7 @@ Proof. intros.
        rewrite H0, H1 in H2. apply H2.
        destruct H as ((x, Hx), p).
        exists (@MkBitvector n x Hx). cbn in *.
-       split. easy. now rewrite <- RAWBITVECTOR_LIST.bv_shl_eq.
+       split. easy. apply p.
 Qed.
 
 
