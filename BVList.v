@@ -32,8 +32,8 @@ Local Open Scope bool_scope.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-(* From Hammer Require Import Hammer Reconstr. *)
-From BV Require Import Reconstr.
+From Hammer Require Import Hammer Reconstr.
+(* From BV Require Import Reconstr. *)
 
 (* We temporarily assume proof irrelevance to handle dependently typed
    bit vectors *)
@@ -5825,6 +5825,25 @@ Proof. intros.
           @Coq.Arith.PeanoNat.Nat.eq_0_gt_0_cases) Reconstr.Empty.
 Qed.
 
+Lemma nm_cases_all: forall n m, (n <? m)%nat = true \/ 
+                                    (n =? m)%nat = true \/
+                                     (m <? n)%nat = true.
+Proof. intro n.
+        induction n; intros.
+        - case_eq m; intros.
+          + right. left. easy.
+          + left.
+            Reconstr.reasy (@RAWBITVECTOR_LIST.n_cases_all_gt) Reconstr.Empty.
+        - case_eq m; intros.
+          + right.
+            Reconstr.reasy (@RAWBITVECTOR_LIST.n_cases_all_gt) Reconstr.Empty.
+          + Reconstr.rcrush (@Coq.Arith.EqNat.beq_nat_refl, 
+               @Coq.Arith.PeanoNat.Nat.add_1_r,
+               @Coq.PArith.Pnat.Pos2Nat.inj_1, 
+               @RAWBITVECTOR_LIST.ltb_plus,  
+               @Coq.Arith.EqNat.beq_nat_eq) Reconstr.Empty.
+Qed.
+
 Lemma skipn_same_mktr: forall n, 
 skipn n (mk_list_true n) ++ mk_list_true n = mk_list_true n.
 Proof. induction n; intros.
@@ -6147,6 +6166,16 @@ Proof. intros. rewrite pow_eqb_0.
            @Coq.Init.Nat.ltb).
 Qed.
 
+Lemma pow_ltb_false_gen: forall (l s: list bool),
+length s = length l ->
+(N.to_nat (list2N (mk_list_true (length l))) <?
+ N.to_nat (list2N s) = false)%nat.
+Proof. intros. rewrite pow_eqb_0.
+        Reconstr.reasy (@RAWBITVECTOR_LIST.pow_ltb_false,
+         @RAWBITVECTOR_LIST.pow_eqb_0) Reconstr.Empty.
+Qed.
+
+
 Lemma  bv2nat_gt0: forall t a, (a <? bv2nat_a t)%nat = true -> 
 t <> mk_list_false (length t).
 Proof. intro t.
@@ -6447,8 +6476,43 @@ Proof. intro n.
            cbn. lia.
 Qed.
 
+Lemma mk_list_false_app_unit: forall a n, list2N (a ++ mk_list_false n) = list2N a.
+Proof. intro a.
+        induction a; intros.
+        - cbn. now rewrite list2N_mk_list_false.
+        - cbn. case_eq a; intros; now rewrite IHa.
+Qed.
+
+
 Lemma pos_powN: forall n: N, (N.to_nat n > 0)%nat -> (2^(N.to_nat n) - 1 >= (N.to_nat n))%nat.
 Proof. intros. Reconstr.rsimple (@RAWBITVECTOR_LIST.pos_pow) Reconstr.Empty.
+Qed.
+
+(* forall b, toNat(b) >= 0 *)
+Lemma bvgez: forall a: bitvector, (bv2nat_a a = 0%nat) \/ (bv2nat_a a > 0)%nat.
+Proof. intro a.
+       induction a.
+       - cbn. left. easy.
+       - case_eq a; intros.
+         + right. unfold bv2nat_a, list2nat_be_a.
+        	 Reconstr.rsimple (@Coq.Arith.Gt.gt_0_eq, @Coq.Arith.PeanoNat.Nat.add_0_l,
+           @Coq.NArith.Nnat.N2Nat.inj_succ_double) 
+          (@list2nat_be_a, 
+           @list2N).
+         + unfold bv2nat_a, list2nat_be_a. destruct IHa.
+           * left. 
+	           Reconstr.rblast (@Coq.NArith.Nnat.N2Nat.id, @list2N_N2List,
+               @Coq.Init.Peano.O_S, @Coq.NArith.Nnat.Nat2N.id) 
+              (@Coq.NArith.BinNatDef.N.of_nat, @list2nat_be_a, 
+               @bv2nat_a, @Coq.NArith.BinNatDef.N.double, 
+               @list2N).
+           * right. cbn. 
+	           Reconstr.rsimple (@Coq.NArith.Nnat.Nat2N.id, @Coq.PArith.Pnat.Pos2Nat.is_pos, 
+              @Coq.Arith.PeanoNat.Nat.lt_irrefl, @list2N_N2List)
+             (@list2nat_be_a, @Coq.NArith.BinNatDef.N.to_nat, 
+              @Coq.NArith.BinNatDef.N.of_nat,
+              @Coq.Init.Peano.gt, @Coq.NArith.BinNatDef.N.double,
+              @bv2nat_a).
 Qed.
 
 
