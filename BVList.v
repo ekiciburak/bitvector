@@ -777,6 +777,41 @@ Proof.
 Qed.
 
 
+(* forall x : bitvector, size(x) >= 0 *)
+
+Theorem length_of_tail : forall (h : bool) (t : list bool), 
+ length (h :: t) = S (length t).
+  intros h t.
+Proof. 
+  induction t; reflexivity.
+Qed.
+
+Theorem non_empty_list_size : forall (h : bool) (t : list bool),
+          N.to_nat (size (h :: t)) = S (N.to_nat (size t)).
+Proof.
+  intros h t. induction t as [| h' t' IHt].
+    + reflexivity.
+    + unfold size in *. rewrite -> length_of_tail.
+      rewrite -> length_of_tail. rewrite -> Nat2N.id in *.
+      rewrite -> Nat2N.id. reflexivity.
+Qed.
+
+Theorem succ_gt_pred : forall (n : nat), (n >= 0)%nat -> (S n >= 0)%nat.
+Proof.
+  intros n. induction n as [| n' IHn].
+  + unfold ge. intros H. apply le_0_n.
+  + unfold ge. intros H. auto.
+Qed.
+
+Theorem bv_size_nonnegative : forall (x : bitvector), (N.to_nat(size x) >= 0)%nat.
+Proof.
+  intros x. induction x.
+  - auto.
+  - rewrite -> non_empty_list_size. unfold size in *. 
+    rewrite -> Nat2N.id in *. apply succ_gt_pred. apply IHx.
+  Qed.
+
+
 
 (* Logical Operations *)
 
@@ -1943,6 +1978,16 @@ Proof. intros n a b H0 H1. unfold bv_and, size, bits in *.
        unfold bv_not, size, bits in *.
        rewrite not_list_or_and. reflexivity.
 Qed.
+
+Lemma bvdm: forall a b: bitvector, size a = size b ->
+   (bv_not (bv_and a b)) = (bv_or (bv_not a) (bv_not b)).
+Proof. intros. unfold bv_and, bv_or, bv_not.
+       rewrite H, N.eqb_refl.
+       unfold bits, size in *. 
+       rewrite !map_length, H, N.eqb_refl.
+       now rewrite not_list_and_or.
+Qed.
+
 
 (* list bitwise ADD properties*)
 
@@ -3554,6 +3599,16 @@ Proof. intros n a b H0 H1. unfold bv_add, bv_subt', add_list, size, bits in *.
   apply (@subt'_add_list a b n); easy.
   rewrite <- H0 in H1. now apply Nat2N.inj in H1.
 Qed.
+
+Theorem bvadd_U: forall (n : N),
+  forall (s t x: bitvector), (size s) = n /\ (size t) = n /\ (size x) = n ->
+  (bv_add x s) = t <-> (x = (bv_subt' t s)).
+Proof. intros n s t x (Hs, (Ht, Hx)).
+  split; intro A.
+  - rewrite <- A. symmetry. exact (@bv_subt'_add n x s Hx Hs).
+  - rewrite A. exact (bv_add_subst_opp Ht Hs).
+Qed.
+
 
  (* bitvector MULT properties *) 
 
