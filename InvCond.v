@@ -111,10 +111,10 @@ Proof.
     apply bv_ugt_bv_ult in H1. rewrite bv_shl_eq in *. 
     assert (forall (n : N) (x s : bitvector), size x = n 
             -> size s = n -> 
-            bv_uleP (bv_shl_a x s) 
-              (bv_shl_a (bv_not (zeros (size s))) s)).
+            bv_ule (bv_shl_a x s) 
+              (bv_shl_a (bv_not (zeros (size s))) s) = true).
     { apply bv_shl_a_1_leq. }
-    specialize (@H n x s Hx Hs). apply bv_ule_B2P in H.
+    specialize (@H n x s Hx Hs).
     pose proof (@bv_ult_ule_list_trans t (bv_shl_a x s)
                 (bv_shl_a (bv_not (zeros (size s))) s) H1 H).
     apply H0.
