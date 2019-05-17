@@ -4887,11 +4887,8 @@ Proof.
       intros Hxy. inversion Hxy. easy. 
 Qed.
 
-Lemma skipn_b_zeros_aux : forall (b : bitvector), 
-  lt (N.to_nat (list2N b)) (length b) -> 
-  list2N b = list2N (firstn ((N.to_nat (list2N b))) b).
-Admitted.
 
+(*
 Lemma skipn_b_zeros : forall (b : bitvector), lt (list2nat_be_a b) (length b) ->
   skipn (list2nat_be_a b) b = mk_list_false ((length b) - (list2nat_be_a b)).
 Proof.
@@ -4911,7 +4908,7 @@ Proof.
   apply eq_bv_not in skipn_b_zeros. rewrite bv_not_false in skipn_b_zeros.
   rewrite skipn_bv_not in skipn_b_zeros. apply skipn_b_zeros.
 Qed.
-
+*)
 (* Shift Right (Arithmetic) *)
 
 Definition ashr_one_bit (a: list bool) (sign: bool) : list bool :=
