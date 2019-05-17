@@ -26,6 +26,7 @@ Proof. intros.
          rewrite RAWBITVECTOR_LIST.bv_eq_reflect in p.
          exists x. split; easy.
 Qed.
+
 (*------------------------------------------------------------*)
 
 
@@ -52,6 +53,7 @@ Proof. intros.
          rewrite RAWBITVECTOR_LIST.bv_eq_reflect in p.
          exists x. split; easy.
 Qed.
+
 (*------------------------------------------------------------*)
 
 
@@ -79,6 +81,7 @@ Proof. intros.
          exists x. split; easy.
 Qed.
 
+
 (* (exists x, x << s != t) => t != 0 or s <u size(s) *)
 Theorem bvshl_neq_rtl: forall (n : N), forall (s t : bitvector n), 
     (exists (x : bitvector n), bv_eq (bv_shl x s) t = false) ->
@@ -94,6 +97,7 @@ Proof. intros.
        exists (@MkBitvector n x Hx). cbn in *.
        split. easy. apply p.
 Qed.
+
 
 (* (t <u (~0 << s)) <=> (exists x, x << s >u t) *)
 Theorem bvshl_ugt : forall (n : N), forall (s t : bitvector n),
@@ -118,6 +122,7 @@ Proof. intros.
           destruct H as ((x, Hx), p).
           exists x. split; easy.
 Qed.
+
 (*------------------------------------------------------------*)
 
 
@@ -156,6 +161,7 @@ Proof. intros.
           rewrite RAWBITVECTOR_LIST.bv_eq_reflect.
           now rewrite Hs in Hi.
 Qed.
+
 (*------------------------------------------------------------*)
 
 
@@ -184,7 +190,8 @@ Proof. intros.
           exists x; easy.
 Qed.
 
-(* (t <u (~s >> s)) <=> (exists x, (x >> s) >u t) *)
+
+(* (t <u (~s >> s)) => (exists x, (x >> s) >u t) *)
 Theorem bvshr_ugt_ltr : forall (n : N), forall (s t : bitvector n), 
     (bv_ult t (bv_shr (bv_not s) s) = true) -> 
     (exists (x : bitvector n), bv_ugt (bv_shr x s) t = true).
@@ -200,28 +207,6 @@ Proof. intros.
        rewrite RAWBITVECTOR_LIST.bv_shr_eq in p.
        exists (@MkBitvector n x Hx).
        now rewrite RAWBITVECTOR_LIST.bv_shr_eq.
-Qed.
-
-Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector n), 
-    (exists (x : bitvector n), bv_ugt (bv_shr x s) t = true) ->
-    (bv_ult t (bv_shr (bv_not s) s) = true).
-Proof. intros.
-        destruct s as (s, Hs).
-        destruct t as (t, Ht).
-        destruct H as ((x, Hx), H).
-        unfold bv_ugt, bv_ult, bv_shr_a, bv in *. cbn in *.
-        specialize (bvshr_ugt_rtl n s t Hs Ht); intros.
-        rewrite RAWBITVECTOR_LIST.bv_shr_eq in *.
-        apply H0. exists x. split. apply Hx.
-        now rewrite RAWBITVECTOR_LIST.bv_shr_eq.
-Qed.
-
-Theorem bvshr_ugt : forall (n : N), forall (s t : bitvector n), iff
-    (bv_ult t (bv_shr (bv_not s) s) = true)
-    (exists (x : bitvector n), bv_ugt (bv_shr x s) t = true).
-Proof. split.
-        + apply bvshr_ugt_ltr.
-        + apply bvshr_ugt_rtl.
 Qed.
 
 (*------------------------------------------------------------*)
@@ -327,6 +312,7 @@ Proof. intros.
           now rewrite RAWBITVECTOR_LIST.bv_eq_reflect, <- Hs.
 Qed.
 
+
 (* ((s <u t \/ s >=s 0) /\ t != 0) <=> (exists x, (s >>a x) <u t) *)
 Theorem bvashr_ult2_ltr : forall (n : N), forall (s t : bitvector n),
      (((bv_ult s t = true) \/ (bv_slt s (zeros n)) = false) /\
@@ -370,6 +356,7 @@ Proof. split.
       + apply bvashr_ult2_ltr.
       + apply bvashr_ult2_rtl.
 Qed.
+
 
 (* ((s <s (s >> !t)) \/ (t <u s)) <=> (exists x, (s >>a x) >u t) *)
 Theorem bvashr_ugt2_ltr: forall (n : N), forall (s t : bitvector n),
@@ -422,4 +409,5 @@ Proof. intros n s t.
           now rewrite bv_add_subst_opp.
         - easy.
 Qed.
+
 (*------------------------------------------------------------*)
