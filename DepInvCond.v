@@ -82,7 +82,20 @@ Proof. intros.
 Qed.
 
 
-(* (exists x, x << s != t) => t != 0 or s <u size(s) *)
+(* t != 0 or s <u size(s) <=> (exists x, x << s != t) *)
+Theorem bvshl_neq_ltr: forall (n : N), forall (s t : bitvector n), 
+    bv_eq t (zeros n) = false \/ 
+     bv_ult s (nat2bv (N.to_nat n) n) = true ->
+    (exists (x : bitvector n), bv_eq (bv_shl x s) t = false).
+Proof. intros.
+       destruct s as (s, Hs).
+       destruct t as (t, Ht).
+       unfold bv_ult, bv_ashr_a, bv_eq, bv in *. cbn in *.
+       specialize (bvshl_neq_ltr n s t Hs Ht); intros.
+       rewrite Ht, Hs in H0. specialize (@H0 H).
+       destruct H0 as (x, (Hx, H0)). now exists (@MkBitvector n x Hx). 
+Qed.
+
 Theorem bvshl_neq_rtl: forall (n : N), forall (s t : bitvector n), 
     (exists (x : bitvector n), bv_eq (bv_shl x s) t = false) ->
     bv_eq t (zeros n) = false \/ 
@@ -98,6 +111,16 @@ Proof. intros.
        split. easy. apply p.
 Qed.
 
+Theorem bvshl_neq: forall (n : N), forall (s t : bitvector n), 
+  iff
+    (bv_eq t (zeros n) = false \/ 
+     bv_ult s (nat2bv (N.to_nat n) n) = true)
+    (exists (x : bitvector n), bv_eq (bv_shl x s) t = false).
+Proof.
+  intros. split.
+  + apply bvshl_neq_ltr.
+  + apply bvshl_neq_rtl.
+Qed.
 
 (* (t <u (~0 << s)) <=> (exists x, x << s >u t) *)
 Theorem bvshl_ugt : forall (n : N), forall (s t : bitvector n),

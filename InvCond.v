@@ -68,6 +68,73 @@ Proof. intros n s t Hs Ht.
 Qed.
 
 
+(* t != 0 or s <u size(s) => (exists x, x << s != t) *)
+Theorem bvshl_neq_ltr: forall (n : N), forall (s t : bitvector), 
+  (size s) = n -> (size t) = n ->
+    bv_eq t (zeros (size t)) = false \/ 
+      bv_ult s (nat2bv (N.to_nat (size s)) (size s)) = true ->
+    (exists (x : bitvector), (size x = n) /\ bv_eq (bv_shl x s) t = false).
+Proof.
+  intros n s t Hs Ht H. destruct H.
+  + unfold bv_eq in H. rewrite zeros_size in H. rewrite N.eqb_refl in H.
+    unfold bits in H. apply List_neq in H. exists (zeros n). split.
+    - apply zeros_size.
+    - unfold bv_eq. rewrite (@bv_shl_size n (zeros n) s (@zeros_size n) Hs).
+      rewrite Ht. rewrite N.eqb_refl. unfold bits. apply List_neq2. 
+      pose proof (@bvshl_zeros s) as bvshl_zeros. rewrite Hs in bvshl_zeros.
+      rewrite bvshl_zeros. rewrite Ht in H. unfold not in *. 
+      intros t_0. rewrite t_0 in H. 
+      now specialize (@H (@eq_refl bitvector t)).
+  + destruct (@list_cases_all_false s).
+    - exists (bv_not t). split.
+      * now apply bv_not_size.
+      * unfold bv_eq. rewrite (@bv_shl_size n (bv_not t) s (@bv_not_size n t Ht) Hs).
+        rewrite Ht. rewrite N.eqb_refl. unfold bits. apply List_neq2.
+        rewrite H0. pose proof (@bvshl_b_zeros (bv_not t)) as bvshl0.
+        rewrite bv_shl_eq. unfold zeros, size in bvshl0.
+        rewrite Nat2N.id in bvshl0. pose proof Hs as Hss.
+        pose proof Ht as Htt. unfold size in Hs, Ht. 
+        rewrite <- N2Nat.inj_iff in Hs, Ht. rewrite Nat2N.id in Hs, Ht.
+        rewrite Hs. rewrite <- Ht. pose proof (@bv_not_size n t) as bvnot_size.
+        specialize (@bvnot_size Htt). unfold size in bvnot_size.
+        rewrite <- N2Nat.inj_iff in bvnot_size.
+        rewrite Nat2N.id in bvnot_size. rewrite bvnot_size in bvshl0.
+        rewrite <- Ht in bvshl0. rewrite bvshl0. unfold not.
+        induction t.
+        ++ simpl in Ht. rewrite <- Ht in Hs. 
+           pose proof (@length_zero_nil s) as length_nil.
+           symmetry in Hs. specialize (@length_nil Hs).
+           rewrite <- length_nil in H. simpl in H.
+           now contradict H.
+        ++ apply bv_not_not_eq.
+    - destruct (@list_cases_all_false t).
+      * exists (mk_list_true (N.to_nat n)). split. 
+        ** unfold size. rewrite length_mk_list_true. 
+           now rewrite N2Nat.id.
+        ** unfold bv_eq. 
+           pose proof (@bv_shl_size n (mk_list_true (N.to_nat n)) s) as Hsize.
+           unfold size in Hsize at 1.
+           rewrite (@length_mk_list_true (N.to_nat n)) in Hsize.
+           rewrite N2Nat.id in Hsize. 
+           specialize (@Hsize (@N.eq_refl n) Hs). rewrite Hsize. rewrite Ht.
+           rewrite N.eqb_refl. unfold bits. apply List_neq2.
+           rewrite H1. unfold size in Ht, Hs. rewrite <- N2Nat.inj_iff in Ht, Hs.
+           rewrite Nat2N.id in Ht, Hs. rewrite Ht.
+           pose proof (@bvshl_ones_neq_zero (N.to_nat n) s Hs H H0) as shift_ones.
+           apply shift_ones.
+      * exists (zeros n). split.
+        ** apply zeros_size.
+        ** unfold bv_eq. pose proof bv_shl_size. 
+           rewrite (@bv_shl_size n (zeros n) s (@zeros_size n) Hs).
+           rewrite Ht. rewrite N.eqb_refl. unfold bits. apply List_neq2.
+           unfold not. intros contr.
+           pose proof (@bvshl_zeros s) as shl_0. rewrite Hs in shl_0. 
+           rewrite shl_0 in contr. unfold zeros in contr.
+           unfold size in Ht. apply N2Nat.inj_iff in Ht. rewrite Nat2N.id in Ht.
+           rewrite Ht in H1. unfold not in H1. apply H1. symmetry in contr.
+           apply contr.
+Qed. 
+
 (* (exists x, x << s != t) => t != 0 or s <u size(s) *)
 Theorem bvshl_neq_rtl: forall (n : N), forall (s t : bitvector), 
   (size s) = n -> (size t) = n ->
@@ -94,6 +161,16 @@ Proof.
       rewrite N2Nat.id. now rewrite N.eqb_refl.
 Qed.
 
+Theorem bvshl_neq: forall (n : N), forall (s t : bitvector), 
+  (size s) = n -> (size t) = n -> iff
+    (bv_eq t (zeros (size t)) = false \/ 
+      bv_ult s (nat2bv (N.to_nat (size s)) (size s)) = true)
+    (exists (x : bitvector), (size x = n) /\ bv_eq (bv_shl x s) t = false).
+Proof.
+  intros. split.
+  + now apply bvshl_neq_ltr.
+  + now apply bvshl_neq_rtl.
+Qed.
 
 (* (t <u (~0 << s)) <=> (exists x, x << s >u t) *)
 Theorem bvshl_ugt : forall (n : N), forall (s t : bitvector),
