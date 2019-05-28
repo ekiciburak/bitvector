@@ -4,9 +4,9 @@
 (*     Copyright (C) 2011 - 2016                                          *)
 (*                                                                        *)
 (*     Chantal Keller  *                                                  *)
-(*     Alain   Mebsout   ♯                                                *)
-(*     Burak   Ekici     ♯                                                *)
-(*     Arjun Viswanathan ♯						                                    *)
+(*     Alain   Mebsout   ♯                                                                        *)
+(*     Burak   Ekici     ♯                                                                        *)
+(*     Arjun Viswanathan ♯						   *)
 (*                                                                        *)
 (*    * Inria - École Polytechnique - Université Paris-Sud                *)
 (*    ♯ The University of Iowa                                            *)
@@ -797,7 +797,7 @@ Qed.
 
 
 (* Definitions *)
-(* eq-defs *)
+(* eq-defs-begin *)
 
 Fixpoint beq_list (l m : list bool) {struct l} :=
   match l, m with
@@ -816,9 +816,11 @@ Fixpoint beq_listP (l m : list bool) {struct l} :=
     | _, _ => False
   end.
 
+(* eq-defs-end *)
+
 
 (* Theorems *)
-(* eq-thrms *)
+(* eq-thrms-begin *)
 
 Lemma bv_mk_eq l1 l2 : bv_eq l1 l2 = beq_list l1 l2.
 Proof.
@@ -979,6 +981,8 @@ Proof. induction l; intros.
             right. Reconstr.reasy Reconstr.Empty Reconstr.Empty.
 Qed.
 
+(* eq-thrms-end *)
+
 
 
 
@@ -993,7 +997,7 @@ Qed.
 
 
 (* Definitions *)
-(* and-defs *)
+(* and-defs-begin *)
 
 Definition bv_and (a b : bitvector) : bitvector :=
   match (@size a) =? (@size b) with
@@ -1001,9 +1005,11 @@ Definition bv_and (a b : bitvector) : bitvector :=
     | _    => nil
   end.
 
+(* and-defs-end *)
+
 
 (* Theorems *)
-(* and-thrms *)
+(* and-thrms-begin *)
 
 (* list bitwise AND properties *)
 Lemma map2_and_comm: forall (a b: list bool), (map2 andb a b) = (map2 andb b a).
@@ -1244,6 +1250,8 @@ Proof. intro a. unfold bv_and.
        rewrite map2_and_0_absorb. reflexivity.
 Qed.
 
+(* and-thrms-end *)
+
 
 
 
@@ -1252,7 +1260,7 @@ Qed.
 
 
 (* Definitions *)
-(* or-defs *)
+(* or-defs-begin *)
 
 Definition bv_or (a b : bitvector) : bitvector :=
   match (@size a) =? (@size b) with
@@ -1260,9 +1268,11 @@ Definition bv_or (a b : bitvector) : bitvector :=
     | _    => nil
   end.
 
+(* or-defs-end *)
+
 
 (* Theorems *)
-(* or-thrms *)
+(* or-thrms-begin *)
 
 (* lists bitwise OR properties *)
 Lemma map2_or_comm: forall (a b: list bool), (map2 orb a b) = (map2 orb b a).
@@ -1463,6 +1473,8 @@ Proof. intros a b n H0 H1.
        now rewrite <- Nat2N.inj_iff, H1.
 Qed.
 
+(* or-thrms-end *)
+
 
 
 
@@ -1471,7 +1483,7 @@ Qed.
 
 
 (* Definitions *)
-(* xor-defs *)
+(* xor-defs-begin *)
 
 Definition bv_xor (a b : bitvector) : bitvector :=
   match (@size a) =? (@size b) with
@@ -1479,9 +1491,11 @@ Definition bv_xor (a b : bitvector) : bitvector :=
     | _    => nil
   end.
 
+(* xor-defs-end *)
+
 
 (* Theorems *)
-(* xor-thrms *)
+(* xor-thrms-begin *)
 
 (* lists bitwise XOR properties *)
 Lemma map2_xor_comm: forall (a b: list bool), (map2 xorb a b) = (map2 xorb b a).
@@ -1625,6 +1639,8 @@ Proof. intro a. unfold bv_xor.
        rewrite map2_xor_1_true. reflexivity.
 Qed.
 
+(* xor-thrms-end *)
+
 
 
 
@@ -1633,14 +1649,16 @@ Qed.
 
 
 (* Definitions *)
-(* not-defs *)
+(* not-defs-begin *)
 
 Definition bv_not (a: bitvector) : bitvector := map negb (@bits a).
 
-(* Theorems *)
-(* not-thrms *)
+(* not-defs-end *)
 
-(* bitwise NOT properties *)
+
+(* Theorems *)
+(* not-thrms-begin *)
+
 Lemma not_list_length: forall a, length a = length (map negb a).
 Proof. intro a.
        induction a as [ | a xs IHxs].
@@ -1685,8 +1703,6 @@ Proof. intro a.
          + auto.
          + simpl. rewrite negb_orb. apply f_equal. apply IHxs.
 Qed.
-
-(* bitvector NOT properties *)
 
 Lemma bv_not_size: forall n a, (size a) = n -> size (bv_not a) = n.
 Proof. intros n a H. unfold bv_not.
@@ -1743,6 +1759,8 @@ Proof.
   intros. unfold not. induction h; easy.
 Qed.
 
+(* not-thrms-end *)
+
 
 
 
@@ -1757,7 +1775,7 @@ Qed.
 
 
 (* Definitions *)
-(* add-defs *)
+(* add-defs-begin *)
 
 Definition add_carry b1 b2 c :=
   match b1, b2, c with
@@ -1788,10 +1806,12 @@ Definition bv_add (a b : bitvector) : bitvector :=
     | _    => nil
   end.
 
-(* Theorems *)
-(* add-thrms *)
+(* add-defs-end *)
 
-(* list bitwise ADD properties *)
+
+(* Theorems *)
+(* add-thrms-begin *)
+
 Lemma add_carry_ff: forall a, add_carry a false false = (a, false).
 Proof. intros a.
        case a; simpl; auto.
@@ -2040,6 +2060,7 @@ Proof. intro a. unfold bv_add, size, bits.
        rewrite add_list_twice. reflexivity.
 Qed.
 
+(* add-thrms-end *)
 
 
 
@@ -2049,7 +2070,7 @@ Qed.
 
 
 (* Definitions *)
-(* sub-defs *)
+(* sub-defs-begin *)
 
 (* Using 2's Complement *)
 Definition twos_complement b :=
@@ -2094,9 +2115,11 @@ Definition bv_subt (a b : bitvector) : bitvector :=
     | _    => nil 
   end.
 
+(* sub-defs-end *)
+
 
 (* Theorems *)
-(* sub-thrms *)
+(* sub-thrms-begin *)
 
 (* bitwise SUBST properties *)
 Lemma subst_list_empty_empty_l: forall a, (subst_list [] a) = [].
@@ -2217,6 +2240,8 @@ Proof. intros n a H. unfold bv_neg.
        now rewrite length_mk_list_false.
 Qed.
 
+(* sub-thrms-end *)
+
 
 
 
@@ -2225,7 +2250,7 @@ Qed.
 
 
 (* Theorems *)
-(* addsub-thrms *)
+(* addsub-thrms-begin *)
 
 (* bitwise ADD-NEG properties *)
 Lemma add_neg_list_carry_false: forall a b c, add_list_ingr a (add_list_ingr b c true) false = add_list_ingr a (add_list_ingr b c false) true.
@@ -2362,6 +2387,8 @@ Proof. intros n s t x (Hs, (Ht, Hx)).
   - rewrite A. exact (bv_add_subst_opp Ht Hs).
 Qed.
 
+(* addsub-thrms-end *)
+
 
 
 
@@ -2370,7 +2397,7 @@ Qed.
 
 
 (* Definitions *)
-(* mul-defs *)
+(* mul-defs-begin *)
 
 Fixpoint mult_list_carry (a b :list bool) n {struct a}: list bool :=
   match a with
@@ -2443,11 +2470,12 @@ Definition bv_mult (a b : bitvector) : bitvector :=
   then mult_list a b
   else nil.
 
+(* mul-defs-end *)
+
 
 (* Theorems *)
-(* mul-thrms *)
+(* mul-thrms-begin *)
 
-(* bitvector MULT properties *) 
 Lemma prop_mult_bool_step_k_h_len: forall a b c k,
 length (mult_bool_step_k_h a b c k) = length a.
 Proof. intro a.
@@ -2492,6 +2520,8 @@ Proof. intros n a b H0 H1.
            rewrite prop_mult_bool_step. now rewrite and_with_bool_len.
 Qed.
 
+(* mul-thrms-end *)
+
 
 
 
@@ -2505,7 +2535,7 @@ Qed.
 (* nat *)
 
 (* Theorems *)
-(* nat-thrms *)
+(* nat-thrms-begin *)
 
 Lemma PosSizeNPos: forall p,
 (N.pos (Pos.size p) <=? N.pos p) = true.
@@ -2582,6 +2612,8 @@ Lemma pos_powN: forall n: N, (N.to_nat n > 0)%nat -> (2^(N.to_nat n) - 1 >= (N.t
 Proof. intros. Reconstr.rsimple (@RAWBITVECTOR_LIST.pos_pow) Reconstr.Empty.
 Qed.
 
+(* nat-thrms-end *)
+
 
 
 
@@ -2589,7 +2621,7 @@ Qed.
 (* bv -> nat *)
 
 (* Definitions *)
-(* bv2nat-defs *)
+(* bv2nat-defs-begin *)
 
 Fixpoint pow2 (n: nat): nat :=
   match n with
@@ -2620,10 +2652,11 @@ Definition list2nat_be_a (a: list bool) := N.to_nat (list2N a).
 
 Definition bv2nat_a (a: list bool) := list2nat_be_a a.
 
+(* bv2nat-defs-end *)
+
 
 (* Theorems *)
-(* bv2nat-thrms *)
-
+(* bv2nat-thrms-begin *)
 
 Lemma list2N_mk_list_false: forall n, (list2N (mk_list_false n)) = 0%N.
 Proof. intro n.
@@ -3225,15 +3258,16 @@ Proof. intro l.
             @Coq.Init.Datatypes.length).
 Qed.
 
+(* bv2nat-thrms-end *)
+
 
 
 
 
 (* nat -> bv *)
 
-
 (* Definitions *)
-(* nat2bv-defs *)
+(* nat2bv-defs-begin *)
 
 (* positive binary nat to bool list *)
 Fixpoint pos2list (n: positive) acc :=
@@ -3254,9 +3288,11 @@ Definition N2list (n: N) s :=
 (* nat to bv *)
 Definition nat2bv (n: nat) (s: N): bitvector := N2list (N.of_nat n) (N.to_nat s).
 
+(* nat2bv-defs-end *)
+
 
 (* Theorems *)
-(* nat2bv-thrms *)
+(* nat2bv-thrms-begin *)
 
 Lemma pos2list_acc: forall p a, (pos2list p a) = a ++ (pos2list p []).
 Proof. intro p.
@@ -3456,6 +3492,8 @@ Proof. intro a.
               @bv2nat_a).
 Qed.
 
+(* nat2bv-thrms-end *)
+
 
 
 
@@ -3471,7 +3509,7 @@ Qed.
 
 
 (* unsigned greater than *)
-(* ugt-defs *)
+(* ugt-defs-begin *)
 
 Fixpoint ugt_list_big_endian (x y: list bool) :=
   match x, y with
@@ -3497,12 +3535,14 @@ Definition ugt_listP (x y: list bool) :=
 Definition bv_ugtP (a b : bitvector) : Prop :=
   if @size a =? @size b then ugt_listP a b else False.
 
+(* ugt-defs-end *)
+
 
 
 
 
 (* unsigned less than *)
-(* ult-defs *)
+(* ult-defs-begin *)
 
 Fixpoint ult_list_big_endian (x y: list bool) :=
   match x, y with
@@ -3528,12 +3568,14 @@ Definition ult_listP (x y: list bool) :=
 Definition bv_ultP (a b : bitvector) : Prop :=
   if @size a =? @size b then ult_listP a b else False.
 
+(* ult-defs-end *)
+
 
 
 
 
 (* unsigned less than or equal to*)
-(* ule-defs *)
+(* ule-defs-begin *)
 
 Fixpoint ule_list_big_endian (x y : list bool) :=
   match x, y with
@@ -3560,12 +3602,14 @@ Definition ule_listP (x y: list bool) :=
 Definition bv_uleP (a b : bitvector) : Prop :=
   if @size a =? @size b then ule_listP a b else False.
 
+(* ule-defs-end *)
+
 
 
 
 
 (* Signed less than *)
-(* slt-defs *)
+(* slt-defs-begin *)
 
 Fixpoint slt_list_big_endian (x y: list bool) :=
   match x, y with
@@ -3591,6 +3635,8 @@ Definition slt_listP (x y: list bool) :=
 Definition bv_sltP (a b : bitvector) : Prop :=
   if @size a =? @size b then slt_listP a b else False.
 
+(* slt-defs-end *)
+
 
 
 
@@ -3600,8 +3646,7 @@ Definition bv_sltP (a b : bitvector) : Prop :=
 
 
 (* Unsigned greater than *)
-(* ugt-thrms *)
-
+(* ugt-thrms-begin *)
 
 (* forall x y, x > y => x != y *)
 Lemma ugt_list_big_endian_not_eq : forall x y,
@@ -3985,12 +4030,14 @@ Proof.
   apply H.
 Qed.
 
+(* ugt-thrms-end *)
+
 
 
 
 
 (* Unsigned less than *)
-(* ult-thrms *)
+(* ult-thrms-begin *)
 
 
 (* Transitivity : x < y => y < z => x < z *)
@@ -4689,12 +4736,14 @@ Proof. intro a.
             (@Coq.Init.Datatypes.orb, @Coq.Init.Datatypes.negb).
 Qed.
 
+(* ult-thrms-end *)
+
 
 
 
 
 (* Unsigned less than or equal to *)
-(* ule-thrms *)
+(* ule-thrms-begin *)
 
 (* x < y => y <= z => x < z *)
 
@@ -5269,12 +5318,14 @@ Proof.
   + intros Hxy. rewrite Hxy in Hlexy. now contradict Hlexy.
 Qed.
 
+(* ule-thrms-end *)
+
 
 
 
 
 (* Signed less than *)
-(* slt-thrms *)
+(* slt-thrms-begin *)
 
 (* forall x y, x < y => x != y *)
 Lemma slt_list_big_endian_not_eq : forall x y,
@@ -5497,6 +5548,8 @@ Proof. intro a.
             now rewrite H, bv_slt_ult_eq.
 Qed.
 
+(* slt-thrms-end *)
+
 
 
 
@@ -5511,7 +5564,7 @@ Qed.
 
 
 (* Definitions *)
-(* shl-defs *)
+(* shl-defs-begin *)
 
 Definition shl_one_bit  (a: list bool) : list bool :=
    match a with
@@ -5542,9 +5595,11 @@ Definition bv_shl_a (a b : bitvector) : bitvector :=
   then shl_n_bits_a a (list2nat_be_a b)
   else nil.
 
+(* shl-defs-end *)
+
 
 (* Theorems *)
-(* shl-thrms *)
+(* shl-thrms-begin *)
 
 Lemma length_shl_one_bit : forall a, length (shl_one_bit a) = length a.
 Proof. intro a.
@@ -6045,6 +6100,8 @@ Proof.
       apply mk_list_false_true_app. rewrite Nat.ltb_lt in H. apply H.
 Qed.
 
+(* shl-thrms-end *)
+
 
 
 
@@ -6052,7 +6109,7 @@ Qed.
 
 
 (* Definitions *)
-(* shr-defs *)
+(* shr-defs-begin *)
 
 Definition shr_one_bit (a: list bool) : list bool :=
    match a with
@@ -6086,9 +6143,11 @@ Definition bv_shr_a (a b : bitvector) : bitvector :=
   then shr_n_bits_a a (list2nat_be_a b)
   else nil.
 
+(* shr-defs-end *)
+
 
 (* Theorems *)
-(* shr-thrms *)
+(* shr-thrms-begin *)
 
 Lemma help_same: forall a n,
 (n <? length a)%nat = true ->
@@ -6458,6 +6517,8 @@ Proof. intros.
        unfold shr_aux. now rewrite bv_shr_aux_eq.
 Qed.
 
+(* shr-thrms-end *)
+
 
 
 
@@ -6466,7 +6527,7 @@ Qed.
 
 
 (* Definitions *)
-(* ashr-defs *)
+(* ashr-defs-begin *)
 
 Definition ashr_one_bit (a: list bool) (sign: bool) : list bool :=
    match a with
@@ -6504,9 +6565,11 @@ Definition bv_ashr (a b : bitvector) : bitvector :=
   then ashr_aux a b
   else nil.
 
+(* ashr-defs-end *)
+
 
 (* Theorems *)
-(* ashr-thrms *)
+(* ashr-thrms-begin *)
 
 Lemma length_ashr_one_bit: forall a sign, length (ashr_one_bit a sign) = length a.
 Proof. intro a. destruct sign.
@@ -6693,6 +6756,8 @@ Proof.
     apply H1 in H; rewrite H; easy.
 Qed.
 
+(* ashr-thrms-end *)
+
 
 
 
@@ -6707,7 +6772,7 @@ Qed.
 
 
 (* Definitions *)
-(* extr-defs *)
+(* extr-defs-begin *)
 
 Fixpoint extract (x: list bool) (i j: nat) : list bool :=
   match x with
@@ -6747,9 +6812,11 @@ Definition bv_extr (i n0 n1: N) a : bitvector :=
   Qed.
 *)
 
+(* extr-defs-end *)
+
 
 (* Theorems *)
-(* extr-thrms *)
+(* extr-thrms-begin *)
 
 Lemma zero_false: forall p, ~ 0 >= Npos p.
 Proof. intro p. induction p; lia. Qed.
@@ -6880,6 +6947,8 @@ Proof. intro a.
          cbn. f_equal. now rewrite IHa.
 Qed.
 
+(* extr-thrms-end *)
+
 
 
 
@@ -6888,7 +6957,7 @@ Qed.
 
 
 (* Definitions *)
-(* extn-defs *)
+(* extn-defs-begin *)
 
 Fixpoint extend (x: list bool) (i: nat) (b: bool) {struct i}: list bool :=
     match i with
@@ -6912,12 +6981,14 @@ Definition bv_zextn (n i: N) (a: bitvector): bitvector :=
 Definition bv_sextn (n i: N) (a: bitvector): bitvector :=
   sextend a (nat_of_N i).
 
+(* extn-defs-end *)
+
 
 
 
 
 (* Theorems *)
-(* extn-thrms *)
+(* extn-thrms-begin *)
 
 Lemma extend_size_zero: forall i b, (length (extend [] i b)) = i.
 Proof.
@@ -7007,6 +7078,9 @@ Proof.
   rewrite Nat2N.id.
   now rewrite <- H1.
 Qed.
+
+(* extn-thrms-end *)
+
 
 End RAWBITVECTOR_LIST.
 
