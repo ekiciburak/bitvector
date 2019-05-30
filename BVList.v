@@ -109,6 +109,8 @@ Module Type BITVECTOR.
   Parameter bv_sltP   : forall n, bitvector n -> bitvector n -> Prop.
   Parameter bv_ule    : forall n, bitvector n -> bitvector n -> bool.
   Parameter bv_uleP   : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_uge    : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_ugeP   : forall n, bitvector n -> bitvector n -> Prop.
   Parameter bv_shl    : forall n, bitvector n -> bitvector n -> bitvector n.
   Parameter bv_shr    : forall n, bitvector n -> bitvector n -> bitvector n.
   Parameter bv_ashr   : forall n, bitvector n -> bitvector n -> bitvector n.
@@ -143,6 +145,7 @@ Module Type BITVECTOR.
   Axiom bv_ugt_not_eq : forall n (a b:bitvector n), bv_ugt a b = true -> a <> b.
   Axiom bv_ugt_not_eqP: forall n (a b:bitvector n), bv_ugtP a b -> a <> b.
   Axiom bv_ule_B2P    : forall n (a b:bitvector n), bv_ule a b = true <-> bv_uleP a b.
+  Axiom bv_uge_B2P    : forall n (a b:bitvector n), bv_uge a b = true <-> bv_ugeP a b.
 
   Axiom bv_and_comm   : forall n (a b:bitvector n), bv_eq (bv_and a b) (bv_and b a) = true.
   Axiom bv_or_comm    : forall n (a b:bitvector n), bv_eq (bv_or a b) (bv_or b a) = true.
@@ -195,6 +198,8 @@ Parameter bv_ugt     : bitvector -> bitvector -> bool.
 Parameter bv_ugtP    : bitvector -> bitvector -> Prop.
 Parameter bv_ule     : bitvector -> bitvector -> bool.
 Parameter bv_uleP    : bitvector -> bitvector -> Prop.
+Parameter bv_uge     : bitvector -> bitvector -> bool.
+Parameter bv_ugeP    : bitvector -> bitvector -> Prop.
 Parameter bv_shl     : bitvector -> bitvector -> bitvector.
 Parameter bv_shr     : bitvector -> bitvector -> bitvector.
 Parameter bv_ashr    : bitvector -> bitvector -> bitvector.
@@ -263,6 +268,7 @@ Axiom bv_ugt_not_eq  : forall a b, bv_ugt a b = true -> a <> b.
 Axiom bv_ugt_not_eqP : forall a b, bv_ugtP a b -> a <> b.
 Axiom bv_ugt_B2P     : forall a b, bv_ugt a b = true <-> bv_ugtP a b.
 Axiom bv_ule_B2P     : forall a b, bv_ule a b = true <-> bv_uleP a b.
+Axiom bv_uge_B2P     : forall a b, bv_uge a b = true <-> bv_ugeP a b.
 
 Axiom bv_and_comm    : forall n a b, size a = n -> size b = n -> bv_and a b = bv_and b a.
 Axiom bv_or_comm     : forall n a b, size a = n -> size b = n -> bv_or a b = bv_or b a.
@@ -328,6 +334,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
 
   Definition bv_uleP n (bv1 bv2:bitvector n) := M.bv_uleP bv1 bv2.
 
+  Definition bv_ugeP n (bv1 bv2:bitvector n) := M.bv_ugeP bv1 bv2.
+
   Definition bv_sltP n (bv1 bv2:bitvector n) := M.bv_sltP bv1 bv2.
 
   Definition bv_ugtP n (bv1 bv2:bitvector n) := M.bv_ugtP bv1 bv2.
@@ -360,6 +368,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Definition bv_ugt n (bv1 bv2:bitvector n) : bool := M.bv_ugt bv1 bv2.
   
   Definition bv_ule n (bv1 bv2:bitvector n) : bool := M.bv_ule bv1 bv2.
+
+  Definition bv_uge n (bv1 bv2:bitvector n) : bool := M.bv_uge bv1 bv2.
 
   Definition bv2nat_a n (bv1: bitvector n) : nat := M.bv2nat_a bv1.
 
@@ -474,6 +484,12 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Proof.
       unfold bv_uleP, bv_ule; intros; split; intros;
       now apply M.bv_ule_B2P.
+  Qed.
+
+  Lemma bv_uge_B2P: forall n (a b: bitvector n), bv_uge a b = true <-> bv_ugeP a b.
+  Proof.
+      unfold bv_ugeP, bv_uge; intros; split; intros;
+      now apply M.bv_uge_B2P.
   Qed.
 
   Lemma bv_slt_B2P: forall n (a b: bitvector n), bv_slt a b = true <-> bv_sltP a b.
@@ -3608,6 +3624,40 @@ Definition bv_uleP (a b : bitvector) : Prop :=
 
 
 
+(* unsigned greater than or equal to *)
+(* uge-defs-begin *)
+
+Fixpoint uge_list_big_endian (x y : list bool) :=
+  match x, y with
+  | nil, nil => true
+  | nil, _ => false 
+  | _, nil => false 
+  | xi :: nil, yi :: nil => orb (eqb xi yi) (andb xi (negb yi))
+  | xi :: x', yi :: y' =>
+    orb (andb (Bool.eqb xi yi) (uge_list_big_endian x' y'))
+          (andb xi (negb yi))
+  end. 
+
+(* bool output *)
+Definition uge_list (x y: list bool) :=
+  (uge_list_big_endian (List.rev x) (List.rev y)).
+
+Definition bv_uge (a b : bitvector) : bool :=
+  if @size a =? @size b then uge_list a b else false.
+
+(* Prop output *)
+Definition uge_listP (x y: list bool) :=
+  if uge_list x y then True else False.
+
+Definition bv_ugeP (a b : bitvector) : Prop :=
+  if @size a =? @size b then uge_listP a b else False.
+
+(* uge-defs-end *)
+
+
+
+
+
 (* Signed less than *)
 (* slt-defs-begin *)
 
@@ -5319,6 +5369,29 @@ Proof.
 Qed.
 
 (* ule-thrms-end *)
+
+
+
+
+
+(* Unsigned greater than or equal to *)
+(* uge-thrms-begin *)
+
+(* Equivalence of boolean and Prop comparisons *)
+Lemma bv_uge_B2P: forall x y, bv_uge x y = true <-> bv_ugeP x y.
+Proof.
+  intros. split; intros; unfold bv_uge, bv_ugeP in *.
+  + case_eq (size x =? size y); intros.
+    - rewrite H0 in H. unfold uge_listP. now rewrite H.
+    - rewrite H0 in H. now contradict H.
+  + unfold uge_listP in *. case_eq (size x =? size y); intros.
+    - rewrite H0 in H. case_eq (uge_list x y); intros.
+      * easy.
+      * rewrite H1 in H. now contradict H.
+    - rewrite H0 in H. now contradict H.
+Qed.
+
+(* uge-thrms-end *)
 
 
 
