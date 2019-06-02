@@ -197,6 +197,49 @@ Proof.
     apply H0.
 Qed.
 
+
+(* ((t << s) >> s = t) <=> (x << s >=u t) *)
+Theorem bvshl_uge : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    (bv_eq (bv_shr (bv_shl t s) s) t = true)
+    (exists x, (size x) = n /\ bv_uge (bv_shl x s) t = true).
+Proof.
+  intros n s t Hs Ht. split.
+  + intros H. apply bv_eq_reflect in H.
+    destruct (@list_cases_all_false s).
+    - rewrite H0 in H. exists (mk_list_true (N.to_nat n)). 
+      split.
+      * unfold size. rewrite length_mk_list_true.
+        now rewrite N2Nat.id.
+      * rewrite H0. rewrite bv_shl_eq. pose proof Hs as len. 
+        rewrite <- Ht in len. apply size_len_eq in len.
+        pose proof (@bvshl_b_zeros (mk_list_true (N.to_nat n))).
+        unfold zeros, size in H1. rewrite Nat2N.id in H1.
+        rewrite length_mk_list_true in H1. unfold size in Hs.
+        rewrite <- N2Nat.inj_iff in Hs. rewrite Nat2N.id in Hs.
+        rewrite <- Hs in *. rewrite H1. rewrite len.
+        apply ones_bv_uge_length.
+    - admit. (*exists (zeros n). split.
+      * apply zeros_size.
+      * pose proof Hs as len. rewrite <- Ht in len. 
+        apply size_len_eq in len. rewrite bv_shr_eq, bv_shl_eq in *. 
+        unfold bv_shl_a in *. rewrite Hs, Ht in *.
+        rewrite zeros_size. rewrite N.eqb_refl in *.
+        unfold shl_n_bits_a in *.
+        assert (len2 : length s = length (zeros n)).
+        { pose proof (@zeros_size n). unfold size in H1, Hs.
+          rewrite <- N2Nat.inj_iff in H1, Hs. rewrite Nat2N.id in H1, Hs.
+          now rewrite H1, Hs. }
+        rewrite <- len in H. rewrite <- len2.
+        case_eq (list2nat_be_a s <? length s); intros case.
+        ++ rewrite case in H. 
+        ++ rewrite case in H. pose proof (@bvshr_zeros s) as shr_0.
+           unfold zeros, size in shr_0. rewrite Nat2N.id in shr_0.
+           rewrite bv_shr_eq in shr_0. rewrite shr_0 in H.
+           rewrite <- H. apply bv_uge_refl.*)
+  + intros H. destruct H as (x, (Hx, H)). rewrite bv_eq_reflect.
+Admitted.
+
 (*------------------------------------------------------------*)
 
 
@@ -267,6 +310,17 @@ Proof. intros.
        pose proof (@bv_shr_a_size n (bv_not s) s (@bv_not_size n s H) H).
        rewrite H0, H2. now rewrite N.eqb_refl.
 Qed.
+
+(* (exists x, (x >> s) >u t) => (t <u (~s >> s)) *)
+Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector), 
+  (size s) = n -> (size t) = n ->
+    (exists (x : bitvector), (size x = n) /\ bv_ugt (bv_shr x s) t = true)
+          ->
+    (bv_ult t (bv_shr (bv_not s) s) = true).
+Proof.
+  intros n s t Hs Ht H. destruct H as (x, (Hx, H)).
+  apply bv_ugt_bv_ult in H.
+Admitted.
 
 (*------------------------------------------------------------*)
 
