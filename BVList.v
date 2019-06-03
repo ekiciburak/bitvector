@@ -7014,41 +7014,6 @@ Proof.
 Qed.
 
 
-(* (a << b) >> b = a -> a = 0 *)
-Lemma bvshl_bvshr_implies_zeros : forall (n : N) (a b: bitvector), 
-  size a = n -> size b = n -> bv_shr (bv_shl a b) b = a -> 
-  b <> mk_list_false (length b) -> a = zeros n.
-Proof.
-  intros n a b Ha Hb shifts bnon0.
-  rewrite bv_shl_eq, bv_shr_eq in shifts. unfold bv_shl_a in shifts.
-  rewrite Ha, Hb in shifts. rewrite N.eqb_refl in shifts. 
-  unfold shl_n_bits_a in shifts. 
-  case_eq (list2nat_be_a b <? length a)%nat; intros case.
-  + rewrite case in shifts. unfold bv_shr_a in shifts.
-    assert (size (mk_list_false (list2nat_be_a b) ++ firstn (length a - list2nat_be_a b) a) =?
-           size b = true).
-    { unfold size. rewrite app_length. rewrite length_mk_list_false.
-      pose proof (@firstn_length_le bool a (length a - (list2nat_be_a b))%nat).
-      specialize (@H (@Nat.le_sub_l (length a) (list2nat_be_a b))).
-      rewrite H. apply Nat.ltb_lt in case. apply Nat.lt_le_incl in case. 
-      rewrite (@Nat.add_sub_assoc (list2nat_be_a b) (length a) (list2nat_be_a b) case). 
-      rewrite Nat.add_comm. rewrite Nat.add_sub. unfold size in Ha, Hb. rewrite Ha, Hb.
-      apply eqb_refl. }
-    rewrite H in shifts. unfold shr_n_bits_a in shifts. apply Neqb_ok in H.
-    unfold size in H. rewrite <- N2Nat.inj_iff in H. rewrite Nat2N.id in H.
-    rewrite Nat2N.id in H. rewrite H in shifts. pose proof Ha as len.
-    rewrite <- Hb in len. apply size_len_eq in len. rewrite <- len in shifts at 1.
-    rewrite case in shifts. rewrite skipn_jo in shifts. case_eq (list2nat_be_a b); intros.
-    - apply not_mk_list_false in bnon0. apply Nat.ltb_lt in bnon0. 
-      apply lt_0_neq in bnon0. unfold list2nat_be_a in H0. 
-      symmetry in H0. unfold not in bnon0. apply bnon0 in H0. contradict H0.
-    - rewrite H0 in shifts, H. admit. 
-  + rewrite case in shifts. pose proof (@bvshr_zeros b). rewrite Hb in H at 2.
-    unfold zeros in H at 1. unfold size in H. rewrite Nat2N.id in H.
-    rewrite <- Ha in Hb. apply size_len_eq in Hb. rewrite Hb in H.
-    rewrite bv_shr_eq in H. rewrite shifts in H. apply H.
-Admitted.
-
 (* shr-thrms-end *)
 
 
