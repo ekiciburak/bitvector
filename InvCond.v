@@ -198,6 +198,21 @@ Proof.
 Qed.
 
 
+(* ~0 << s >=u t <=> x << s >= t *)
+Theorem bvshl_uge : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    (bv_uge (bv_shl (bv_not (zeros (size s))) s) t = true)
+    (exists (x : bitvector), (size x = n) /\ (bv_uge (bv_shl x s) t = true)).
+Proof.
+  intros n s t Hs Ht. split.
+  + intros H. exists (bv_not (zeros (size s))). split.
+    - apply bv_not_size. rewrite Hs. apply zeros_size.
+    - apply H.
+  + intros H. destruct H as (x, (Hx, H)). rewrite bv_shl_eq in *.
+    apply bv_uge_bv_ule in H. pose proof (@bv_shl_a_1_leq n x s Hx Hs).
+    pose proof (@bv_ule_list_trans t (bv_shl_a x s) (bv_shl_a (bv_not (zeros (size s))) s) H H0).
+    apply bv_ule_bv_uge in H1. apply H1.
+Qed.
 
 (*------------------------------------------------------------*)
 

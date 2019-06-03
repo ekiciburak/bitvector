@@ -146,6 +146,22 @@ Proof. intros.
           exists x. split; easy.
 Qed.
 
+(* ~0 << s >=u t <=> x << s >= t *)
+Theorem bvshl_uge : forall (n : N), forall (s t : bitvector n), iff
+    (bv_uge (bv_shl (bv_not (zeros n)) s) t = true)
+    (exists (x : bitvector n), (bv_uge (bv_shl x s) t = true)).
+Proof. intros. destruct s as (s, Hs).
+       destruct t as (t, Ht).
+       unfold bv_uge, bv_shl, zeros, bv_not, bits, bv in *.
+       specialize (bvshl_uge n s t Hs Ht); intros.
+       destruct H as (Hltr, Hrtl).
+       split; intros.
+       - rewrite Hs in Hltr. specialize (@Hltr H). destruct Hltr as (x, (Hx, Hltr)).
+         exists (@MkBitvector n x Hx). apply Hltr.
+       - destruct H as ((x, Hx), H). rewrite Hs in Hrtl. 
+         apply Hrtl. exists x. now split. 
+Qed.
+
 (*------------------------------------------------------------*)
 
 

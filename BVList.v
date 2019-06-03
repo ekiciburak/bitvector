@@ -4802,6 +4802,134 @@ Qed.
 (* Unsigned less than or equal to *)
 (* ule-thrms-begin *)
 
+
+(* x <= y => y <= z => x <= z *)
+
+Lemma ule_list_big_endian_trans : forall x y z, 
+  ule_list_big_endian x y = true ->
+  ule_list_big_endian y z = true -> 
+  ule_list_big_endian x z = true.
+Proof.
+  intros x. induction x.
+  + intros y z. case y.
+    - intros Hxy Hyz. case z in *; easy.
+    - intros b l Hxy Hyz. easy.
+  + intros y z. case y.
+    - simpl. case x; easy.
+    - intros b l. intros. simpl in *. case x in *.
+      * case z in *.
+        { case l in *; easy. }
+        { case l in *.
+          + rewrite orb_true_iff in H. destruct H.
+            ++ rewrite eqb_true_iff in H. 
+               case z in *; now rewrite <- H in H0.
+            ++ rewrite andb_true_iff, negb_true_iff in H.
+               destruct H. subst. case z in *.
+              -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
+                 destruct H0.
+                ** right. split; easy.
+                ** now destruct H.
+              -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
+                 destruct H0.
+                ** right. rewrite andb_true_iff, negb_true_iff. destruct H.
+                   now split.
+                ** rewrite andb_true_iff, negb_true_iff in H. now destruct H.
+          + rewrite !orb_true_iff, !andb_true_iff in H, H0.
+            destruct H.
+            * simpl in H. easy. 
+            * destruct H. apply negb_true_iff in H. subst. 
+              simpl.  destruct H0.
+              - destruct H. apply Bool.eqb_prop in H.
+                subst. case z; easy.
+              - destruct H. easy. }
+      * case l in *.
+        { rewrite !orb_true_iff, !andb_true_iff in H.
+          simpl in H. destruct H.
+          + destruct H. case x in H1; easy.
+          + destruct H. apply negb_true_iff in H.
+            subst. simpl in H0. case z in *.
+            * easy.
+            * case b in *.
+              - simpl in H0. case z in *; easy.
+              - simpl in H0. case z in *; easy. }
+        { case z in *; try easy.
+          rewrite !orb_true_iff, !andb_true_iff in *.
+          destruct H.
+          + destruct H. destruct H0.
+            * destruct H0. apply Bool.eqb_prop in H.
+              apply Bool.eqb_prop in H0. subst. left. split.
+              - apply Bool.eqb_reflx.
+              - specialize (@IHx (b1 :: l) z H1 H2).
+                apply IHx. 
+            * right. apply Bool.eqb_prop in H. now subst.
+          + right. destruct H0.
+            * destruct H0. apply Bool.eqb_prop in H0. now subst.
+            * split; easy. }
+Qed.
+
+(* bool output *)
+Lemma ule_list_trans : forall x y z,
+  ule_list x y = true -> ule_list y z = true -> ule_list x z = true.
+Proof.
+  unfold ule_list. intros x y z. apply ule_list_big_endian_trans. 
+Qed.
+
+Lemma bv_ule_list_trans : forall (b1 b2 b3 : bitvector), 
+  bv_ule b1 b2 = true -> bv_ule b2 b3 = true -> bv_ule b1 b3 = true.
+Proof.
+  intros. unfold bv_ule in *. case_eq (size b1 =? size b2).
+  + intros. pose proof H as bv_ule_b1_b2.
+    rewrite H1 in bv_ule_b1_b2. case_eq (size b2 =? size b3).
+    - intros. pose proof H0 as bv_ule_b2_b3.
+      rewrite H2 in bv_ule_b2_b3. case_eq (size b1 =? size b3).
+      * intros. pose proof ule_list_trans as ule_list_trans.
+        specialize (@ule_list_trans b1 b2 b3 bv_ule_b1_b2 bv_ule_b2_b3).
+        apply ule_list_trans.
+      * intros. apply Neqb_ok in H1. apply Neqb_ok in H2. rewrite <- H1 in H2.
+        rewrite H2 in H3. pose proof eqb_refl as eqb_refl.
+        specialize (@eqb_refl (size b3)). rewrite H3 in eqb_refl.
+        now contradict eqb_refl.
+    - intros. rewrite H2 in H0. now contradict H0.
+  + intros. rewrite H1 in H. now contradict H.
+Qed.
+ 
+(* Prop output *)
+Lemma ule_listP_trans : forall (b1 b2 b3 : bitvector),
+  ule_listP b1 b2 -> ule_listP b2 b3 -> ule_listP b1 b3.
+Proof.
+  unfold ule_listP. unfold ule_list. intros.
+  case_eq (ule_list_big_endian (rev b1) (rev b3)).
+  + intros. easy.
+  + intros. case_eq (ule_list_big_endian (rev b1) (rev b2)).
+    - intros. case_eq (ule_list_big_endian (rev b2) (rev b3)).
+      * intros. pose proof ule_list_big_endian_trans.
+        specialize (@H4 (rev b1) (rev b2) (rev b3) H2 H3).
+        rewrite H4 in H1. now contradict H1.
+      * intros. unfold ule_listP in H0. unfold ule_list in H0. 
+        rewrite H3 in H0. apply H0.
+    - intros. rewrite H2 in H. apply H.
+Qed.
+
+Lemma bv_uleP_trans : forall (b1 b2 b3 : bitvector),
+  bv_uleP b1 b2 -> bv_uleP b2 b3 -> bv_uleP b1 b3.
+Proof.
+  intros. unfold bv_uleP in *. case_eq (size b1 =? size b2).
+  + intros. pose proof H as bv_uleP_b1_b2.
+    rewrite H1 in bv_uleP_b1_b2. case_eq (size b2 =? size b3).
+    - intros. pose proof H0 as bv_uleP_b2_b3.
+      rewrite H2 in bv_uleP_b2_b3. case_eq (size b1 =? size b3).
+      * intros. pose proof ule_listP_trans as ule_listP_trans.
+        specialize (@ule_listP_trans b1 b2 b3 bv_uleP_b1_b2 bv_uleP_b2_b3).
+        apply ule_listP_trans.
+      * intros. apply Neqb_ok in H1. apply Neqb_ok in H2. rewrite <- H1 in H2.
+        rewrite H2 in H3. pose proof eqb_refl as eqb_refl.
+        specialize (@eqb_refl (size b3)). rewrite H3 in eqb_refl.
+        now contradict eqb_refl.
+    - intros. rewrite H2 in H0. now contradict H0.
+  + intros. rewrite H1 in H. now contradict H.
+Qed.
+
+
 (* x < y => y <= z => x < z *)
 
 (* x < y => x <= y *)
@@ -5245,12 +5373,6 @@ Proof.
     apply H0 in IHz. apply IHz.
 Qed.
 
-Lemma ule_list_big_endian_cons_nil : forall (b : bool) (l : list bool),
-  ule_list_big_endian (b :: l) [] = false.
-Proof.
-  intros. destruct l; easy.
-Qed.
-
 Lemma cons_disjunct_ule_list_big_endian : forall (h1 h2 : bool) (t1 t2 : list bool),
   (orb 
     (andb (negb h1) h2) 
@@ -5293,6 +5415,12 @@ Proof.
       * apply H.
       * apply H0.
     - left. rewrite andb_true_iff in H. apply H.
+Qed.
+
+Lemma ule_list_big_endian_cons_nil : forall (b : bool) (l : list bool),
+  ule_list_big_endian (b :: l) [] = false.
+Proof.
+  intros. destruct l; easy.
 Qed.
 
 Lemma ule_list_big_endian_app : forall (x y z : bitvector), 
