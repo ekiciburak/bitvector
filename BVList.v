@@ -3,10 +3,10 @@
 (*     DTBitVector                                                        *)
 (*     Copyright (C) 2011 - 2016                                          *)
 (*                                                                        *)
-(*     Chantal Keller  *                                                  *)
-(*     Alain   Mebsout   ♯                                                                        *)
-(*     Burak   Ekici     ♯                                                                        *)
-(*     Arjun Viswanathan ♯						   *)
+(*     Chantal Keller                                                     *)
+(*     Alain   Mebsout   ♯                                                *)
+(*     Burak   Ekici     ♯                                                *)
+(*     Arjun Viswanathan ♯						                                    *)
 (*                                                                        *)
 (*    * Inria - École Polytechnique - Université Paris-Sud                *)
 (*    ♯ The University of Iowa                                            *)
@@ -2267,6 +2267,17 @@ Proof. intros n a H. unfold bv_neg.
        now rewrite length_mk_list_false.
 Qed.
 
+(*
+Lemma bv_neg_involutive : forall b, bv_neg (bv_neg b) = b.
+Proof.
+  intros b. unfold bv_neg.
+  induction b.
+  + easy.
+  + unfold twos_complement at 1. rewrite <- length_twos_complement.
+    unfold twos_complement. 
+Admitted.
+*)
+
 (* sub-thrms-end *)
 
 
@@ -4089,6 +4100,41 @@ Proof.
   apply H.
 Qed.
 
+
+(* b1 = b2 -> !(b1 > b2) *)
+
+Lemma ugt_list_big_endian_not_refl : forall (b : list bool),
+ ugt_list_big_endian b b = false.
+Proof.
+  intros. induction b.
+  + easy.
+  + simpl. case b in *.
+    - apply andb_negb_r.
+    - rewrite orb_false_iff, andb_false_iff. split.
+      * now right.
+      * apply andb_negb_r.
+Qed.
+
+Lemma eq_not_ugt_list_big_endian : forall (b1 b2 : list bool),
+  b1 = b2 -> ugt_list_big_endian b1 b2 = false.
+Proof.
+  induction b1.
+  + intros. case b2; easy.
+  + intros b2 H. induction b2.
+    - easy.
+    - rewrite H. apply ugt_list_big_endian_not_refl. 
+Qed.
+
+Lemma eq_not_bv_ugt : forall (b1 b2 : bitvector),
+  b1 = b2 -> bv_ugt b1 b2 = false.
+Proof.
+  intros b1 b2 H. unfold bv_ugt.
+  case_eq (size b1 =? size b2); intros size.
+  + unfold ugt_list. apply rev_func in H.
+    apply eq_not_ugt_list_big_endian. apply H.
+  + easy.
+Qed.
+
 (* ugt-thrms-end *)
 
 
@@ -5659,6 +5705,36 @@ Proof.
       * rewrite <- eq in H. rewrite H in case. rewrite eqb_refl in case.
         easy.
 Qed.
+
+Lemma not_ugt_list_big_endian_implies_ule_list_big_endian : forall (x y : list bool), 
+  ugt_list_big_endian x y = false -> ule_list_big_endian x y = true.
+Proof.
+  induction x.
+  + intros y. case y.
+    - easy.
+    - intros b l H. simpl in H. unfold ule_list_big_endian.
+(* Oh fuck, looks like the two are not equivalent. *)
+Admitted.
+
+Lemma bv_ule_not_bv_ugt : forall (x y : bitvector), bv_ule x y = true <->
+  (bv_ugt x y = false).
+Proof.
+  intros x y. split.
+  + intros Hule. rewrite bv_ule_eq in Hule. destruct Hule.
+    - apply bv_ult_not_bv_ugt. apply H.
+    - apply eq_not_bv_ugt. apply H. 
+  + intros H. unfold bv_ugt, bv_ule in *.
+    case (size x =? size y) in *.
+    - unfold ugt_list, ule_list in *. induction (rev x).
+      * case (rev y) in *.
+        ++ easy.
+        ++ simpl in *. admit.
+      * case (rev y) in *.
+        ++ simpl in *. case l in *.
+          -- admit.
+          --
+(* Oh fuck, looks like the two are not equivalent. *)
+Admitted.
 
 (* ule-thrms-end *)
 

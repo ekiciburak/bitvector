@@ -5,6 +5,40 @@ Import RAWBITVECTOR_LIST.
 
 Require Import List Bool NArith Psatz (*Int63*) ZArith Nnat.
 
+(*------------------------------Neg------------------------------*)
+(* -x = t <=> True *)
+(*
+Theorem bvneg_eq : forall (n : N), forall (t : bitvector),
+  (size t) = n -> iff 
+    True 
+    (exists (x : bitvector), size x = n /\ bv_neg x = t).
+Proof.
+  intros n t Ht. split.
+  + intros H. exists (bv_neg t). split.
+    - apply bv_neg_size. apply Ht.
+    - admit.
+  + easy.
+Admitted.
+*)
+(*------------------------------------------------------------*)
+
+
+(*------------------------------Not------------------------------*)
+(* ~x - t <=> True *)
+Theorem bvnot_eq : forall (n : N), forall (t : bitvector),
+ (size t) = n -> iff
+    True
+    (exists (x : bitvector), size x = n /\ bv_not x = t).
+Proof.
+  intros n t Ht. split; intros H.
+  + exists (bv_not t). split.
+    - apply bv_not_size. apply Ht.
+    - apply bv_not_involutive.
+  + easy.
+Qed.
+
+(*------------------------------------------------------------*)
+
 
 (*------------------------------And------------------------------*)
 (* t & s = t <=> (exists x, x & s = t) *)
