@@ -5710,6 +5710,8 @@ Proof.
         easy.
 Qed.
 
+
+(* size x = size y -> x !> y -> x <= y *)
 Lemma not_ugt_list_big_endian_implies_ule_list_big_endian : forall (x y : list bool), 
   size x = size y -> ugt_list_big_endian x y = false -> ule_list_big_endian x y = true.
 Proof.
@@ -5768,15 +5770,6 @@ Proof.
                  +++ easy.
 Qed.
 
-Lemma bv_ule_implies_not_bv_ugt : forall (x y : bitvector), 
-bv_ule x y = true -> (bv_ugt x y = false).
-Proof.
-  intros x y. intros Hule. rewrite bv_ule_eq in Hule. 
-  destruct Hule.
-  - apply bv_ult_not_bv_ugt. apply H.
-  - apply eq_not_bv_ugt. apply H.
-Qed.
-
 Lemma not_bv_ugt_implies_bv_ule : forall (x y : bitvector), 
   size x = size y -> (bv_ugt x y = false) -> bv_ule x y = true.
 Proof.
@@ -5795,6 +5788,17 @@ Proof.
          apply not_ugt_list_big_endian_implies_ule_list_big_endian. 
          apply Hxy. apply H.
   - apply eqb_neq in Hxy. easy. 
+Qed.
+
+
+(* x <= y -> x !> y *)
+Lemma bv_ule_implies_not_bv_ugt : forall (x y : bitvector), 
+  bv_ule x y = true -> (bv_ugt x y = false).
+Proof.
+  intros x y. intros Hule. rewrite bv_ule_eq in Hule. 
+  destruct Hule.
+  - apply bv_ult_not_bv_ugt. apply H.
+  - apply eq_not_bv_ugt. apply H.
 Qed.
 
 (* ule-thrms-end *)
