@@ -6281,16 +6281,14 @@ Proof.
   + simpl. rewrite bv_not_app. rewrite IHx. easy.
 Qed. 
 
-Lemma sign_rev_bv : forall (x : bitvector),
-  last x false = hd false (rev x).
-Proof.
-  intros x. induction x.
-  + easy.
-  + simpl. rewrite IHx. case x.
-    - easy.
-    - intros b l. simpl. case (rev l).
-      * now simpl.
-      * intros h t. now simpl.
+Lemma hd_rev: forall a,
+  hd false (rev a) = last a false.
+Proof. intro a.
+        induction a using rev_ind; intros.
+        - now cbn.
+        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
+            @RAWBITVECTOR_LIST.last_app) 
+           (@Coq.Lists.List.hd).
 Qed.
 
 Lemma uge_bvnot_refl_implies_sign : forall (x : bitvector),
@@ -6302,7 +6300,7 @@ Proof.
   rewrite <- Hsize in uge. rewrite eqb_refl in uge.
   unfold uge_list in uge. rewrite rev_bvnot in uge.
   apply rev_neg_func in notnil. simpl in notnil. 
-  rewrite sign_rev_bv. induction (rev x).
+  rewrite hd_rev. induction (rev x).
   + now contradict notnil.
   + case a in *.
     * easy. 
@@ -6431,16 +6429,6 @@ Proof. intros A a.
           + contradict H.
             destruct a0; easy.
           + now rewrite <- H.
-Qed.
-
-Lemma hd_rev: forall a,
-  hd false (rev a) = last a false.
-Proof. intro a.
-        induction a using rev_ind; intros.
-        - now cbn.
-        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
-            @RAWBITVECTOR_LIST.last_app) 
-           (@Coq.Lists.List.hd).
 Qed.
 
 Lemma bv_slt_tf: forall a b,
