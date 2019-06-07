@@ -6188,7 +6188,7 @@ Proof.
 Qed.
 
 
-(* x <= y -> x !> y *)
+(* x >= y -> x !< y *)
 Lemma bv_uge_implies_not_bv_ult : forall (x y : bitvector), 
   bv_uge x y = true -> (bv_ult x y = false).
 Proof.
@@ -6196,6 +6196,121 @@ Proof.
   destruct Hule.
   - apply bv_ugt_not_bv_ult. apply H.
   - apply eq_not_bv_ult. apply H.
+Qed.
+
+
+(* x != [] /\ x >= ~x -> sign(x) = 0 *)
+
+Lemma ult_big_endian_implies_not_uge_big_endian : forall (x y : bitvector),
+  ult_list_big_endian x y = true -> uge_list_big_endian x y = false.
+Proof.
+  induction x.
+  + intros y ult.
+    case y in *.
+    - easy.
+    - easy.
+  + intros y ult. case y in *.
+    - case x in *; now contradict ult.
+    - case a in *.
+      * case b in *.
+        ++ assert (ult_list_big_endian x y = true).
+           { simpl in ult. case x in *.
+             + case y in ult.
+               - easy.
+               - rewrite orb_true_iff in ult. destruct ult; now simpl in H.
+             + case y in *.
+               - rewrite orb_true_iff in ult. destruct ult.
+                 * simpl in H; case x in H; easy.
+                 * easy.
+               - rewrite orb_true_iff in ult. destruct ult; easy. }
+            specialize (@IHx y H). simpl. case x in *.
+            -- case y in *.
+               ** now contradict H.
+               ** now contradict H.   
+            -- case y in *.
+               ** case x in *; now contradict H.
+               ** rewrite orb_false_iff. split; easy.
+        ++ case x in *; case y in *; now contradict ult.
+      * case b in *.
+        ++ case x in *; case y in *; easy.
+        ++ assert (ult_list_big_endian x y = true).
+           { simpl in ult. case x in *.
+             + case y in ult.
+               - easy.
+               - rewrite orb_true_iff in ult. destruct ult; now simpl in H.
+             + case y in *.
+               - rewrite orb_true_iff in ult. destruct ult.
+                 * simpl in H; case x in H; easy.
+                 * easy.
+               - rewrite orb_true_iff in ult. destruct ult; easy. }
+            specialize (@IHx y H). simpl. case x in *.
+            -- case y in *.
+               ** now contradict H.
+               ** now contradict H.   
+            -- case y in *.
+               ** case x in *; now contradict H.
+               ** rewrite orb_false_iff. split; easy.
+Qed.
+
+Lemma ult_implies_not_uge : forall (x y : bitvector), bv_ult x y = true ->
+  bv_uge x y = false.
+Proof.
+  intros x y ult.
+  unfold bv_ult, bv_uge in *. case_eq (size x =? size y); intros H.
+  + rewrite H in ult. unfold ult_list, uge_list in *.
+    unfold size in H. rewrite <- rev_length in H. 
+    rewrite <- (@rev_length bool y) in H. apply Neqb_ok in H. 
+    rewrite <- N2Nat.inj_iff in H. rewrite Nat2N.id in H.
+    rewrite Nat2N.id in H.
+    apply ult_big_endian_implies_not_uge_big_endian. apply ult.
+  + easy.
+Qed.
+
+Lemma bv_not_app : forall (x : bitvector) (b : bool),
+  bv_not (x ++ [b]) = bv_not x ++ bv_not [b].
+Proof.
+  intros x b. induction x.
+  + easy.
+  + simpl. rewrite IHx. easy. 
+Qed.
+
+Lemma rev_bvnot : forall x : bitvector, rev (bv_not x) = bv_not (rev x).
+Proof.
+  intros x. induction x.
+  + easy.
+  + simpl. rewrite bv_not_app. rewrite IHx. easy.
+Qed. 
+
+Lemma sign_rev_bv : forall (x : bitvector),
+  last x false = hd false (rev x).
+Proof.
+  intros x. induction x.
+  + easy.
+  + simpl. rewrite IHx. case x.
+    - easy.
+    - intros b l. simpl. case (rev l).
+      * now simpl.
+      * intros h t. now simpl.
+Qed.
+
+Lemma uge_bvnot_refl_implies_sign : forall (x : bitvector),
+  x <> [] -> bv_uge x (bv_not x) = true -> last x false = true.
+Proof.
+  intros x notnil uge. unfold bv_uge in uge.
+  assert (Hsize : size x = size (bv_not x)).
+  { rewrite (@bv_not_size (size x) x). easy. easy. }
+  rewrite <- Hsize in uge. rewrite eqb_refl in uge.
+  unfold uge_list in uge. rewrite rev_bvnot in uge.
+  apply rev_neg_func in notnil. simpl in notnil. 
+  rewrite sign_rev_bv. induction (rev x).
+  + now contradict notnil.
+  + case a in *.
+    * easy. 
+    * assert (bv_not (false :: l) = true :: bv_not l) by easy.
+      rewrite H in uge.
+      assert (contr : forall (b1 b2 : bitvector), uge_list_big_endian (false :: b1) (true :: b2) = false).
+      { intros b1 b2. apply ult_big_endian_implies_not_uge_big_endian. case b1; case b2; easy. }
+      specialize (@contr l (bv_not l)). rewrite contr in uge. easy.
 Qed.
 
 
@@ -7662,6 +7777,27 @@ Proof.
     rewrite Nat.ltb_ge in H; apply le_n_0_eq in H;
     pose proof (@empty_list_length bool b); symmetry in H;
     apply H1 in H; rewrite H; easy.
+Qed.
+
+
+(* [] >> x = [] *)
+Lemma bvashr_nil : forall (b : bitvector), bv_ashr_a nil b = [].
+Proof.
+  unfold bv_ashr_a. induction b.
+  + simpl. easy.
+  + simpl. easy.
+Qed.
+
+
+Lemma ashr_size_sign1 : forall (b : bitvector), 
+  last b false = true -> 
+  bv_ashr_a b (nat2bv (length b) (size b)) = bv_not (zeros (size b)).
+Proof.
+  intros b sign. unfold bv_ashr_a. rewrite (@nat2bv_size (length b) (size b)). 
+  rewrite eqb_refl. unfold ashr_aux_a. unfold list2nat_be_a, nat2bv.
+  rewrite list2N_N2List_eq. unfold ashr_n_bits_a. unfold size, zeros.
+  rewrite Nat2N.id. rewrite Nat.ltb_irrefl. rewrite sign. 
+  simpl. rewrite bv_not_false_true. easy.
 Qed.
 
 (* ashr-thrms-end *)
