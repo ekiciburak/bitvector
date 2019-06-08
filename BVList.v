@@ -1008,6 +1008,16 @@ Proof. induction l; intros.
             right. Reconstr.reasy Reconstr.Empty Reconstr.Empty.
 Qed.
 
+Lemma sign_0_or_1 : forall (b : bitvector), 
+  last b false = false \/ last b false = true.
+Proof.
+  intros b. case b.
+  + now left.
+  + intros h t. case (last (h :: t)).
+    - now right.
+    - now left.
+Qed.
+
 (* eq-thrms-end *)
 
 
@@ -3281,19 +3291,6 @@ Proof. intro l.
             @RAWBITVECTOR_LIST.add_neg_list_carry_neg_f, 
             @RAWBITVECTOR_LIST.add_list_carry_empty_neutral_r) 
            (@Coq.Init.Datatypes.negb).
-Qed.
-
-Lemma not_mk_list_false: forall l,
-  l <> mk_list_false (length l) -> (0 <? N.to_nat (list2N l))%nat = true.
-Proof. intro l.
-        induction l; intros.
-        - cbn in *. easy.
-        - cbn in H. 
-          Reconstr.reasy (@RAWBITVECTOR_LIST.gt0_nmk_list_false,
-            @Coq.Lists.List.app_nil_r)
-           (@RAWBITVECTOR_LIST.list2N,
-            @RAWBITVECTOR_LIST.mk_list_false, 
-            @Coq.Init.Datatypes.length).
 Qed.
 
 (* bv2nat-thrms-end *)
@@ -6281,6 +6278,27 @@ Proof.
   + simpl. rewrite bv_not_app. rewrite IHx. easy.
 Qed. 
 
+(*Lemma last_app: forall (a b: list bool) c, b <> nil -> last (a ++ b) c = last b c.
+Proof. intro a.
+        induction a; intros.
+        - now cbn.
+        - cbn. case_eq (a0 ++ b); intros.
+          + contradict H0. 
+         	  Reconstr.rsimple Reconstr.Empty (@Coq.Init.Datatypes.app).
+          + specialize (IHa b c). rewrite H0 in IHa.
+            apply IHa. easy.
+Qed.*)
+
+Lemma last_app: forall {A: Type} (a: list A) x d, List.last (a ++ [x]) d = x.
+Proof. intros A a.
+        induction a; intros.
+        - now cbn.
+        - cbn. case_eq (a0 ++ [x]); intros.
+          + contradict H.
+            destruct a0; easy.
+          + now rewrite <- H.
+Qed.
+
 Lemma hd_rev: forall a,
   hd false (rev a) = last a false.
 Proof. intro a.
@@ -6300,7 +6318,7 @@ Proof.
   rewrite <- Hsize in uge. rewrite eqb_refl in uge.
   unfold uge_list in uge. rewrite rev_bvnot in uge.
   apply rev_neg_func in notnil. simpl in notnil. 
-  rewrite hd_rev. induction (rev x).
+  rewrite <- hd_rev. induction (rev x).
   + now contradict notnil.
   + case a in *.
     * easy. 
@@ -6407,28 +6425,6 @@ Proof. intro a.
               ++ subst. easy.
               ++ subst. easy.
             * cbn in *. subst. now cbn.
-Qed.
-
-
-(*Lemma last_app: forall (a b: list bool) c, b <> nil -> last (a ++ b) c = last b c.
-Proof. intro a.
-        induction a; intros.
-        - now cbn.
-        - cbn. case_eq (a0 ++ b); intros.
-          + contradict H0. 
-         	  Reconstr.rsimple Reconstr.Empty (@Coq.Init.Datatypes.app).
-          + specialize (IHa b c). rewrite H0 in IHa.
-            apply IHa. easy.
-Qed.*)
-
-Lemma last_app: forall {A: Type} (a: list A) x d, List.last (a ++ [x]) d = x.
-Proof. intros A a.
-        induction a; intros.
-        - now cbn.
-        - cbn. case_eq (a0 ++ [x]); intros.
-          + contradict H.
-            destruct a0; easy.
-          + now rewrite <- H.
 Qed.
 
 Lemma bv_slt_tf: forall a b,
@@ -7069,7 +7065,7 @@ Proof.
     assert (sub_le : ((length b - N.to_nat (list2N b))%nat < (length b))%nat).
     { rewrite Nat.ltb_lt in H. pose proof H as Hleq. 
       apply Nat.lt_le_incl in Hleq. 
-      pose proof (@not_mk_list_false b bnot0). rewrite Nat.ltb_lt in H0.
+      pose proof (@gt0_nmk_list_false b bnot0). rewrite Nat.ltb_lt in H0.
       pose proof Nat.sub_lt. 
       pose proof (@Nat.sub_lt (length b) (N.to_nat (list2N b)) Hleq H0).
       apply H2. }
@@ -7788,6 +7784,29 @@ Proof.
   simpl. rewrite bv_not_false_true. easy.
 Qed.
 
+Lemma positive_ashr_implies : forall (b x : bitvector), 
+  (0 < (N.to_nat(list2N x)))%nat ->  
+  bv_uge b (ashr_n_bits_a b (N.to_nat (list2N x)) false) = true.
+Proof.
+  intros b x nonzero. unfold ashr_n_bits_a.
+  case_eq (N.to_nat (list2N x) <? length b)%nat; intros case.
+  + simpl.
+Admitted.
+
+Lemma positive_bv_implies_uge_bv_ashr : forall (b x: bitvector),
+  size x = size b -> last b false = false -> 
+  bv_uge b (bv_ashr_a b x) = true.
+Proof.
+  intros b x Hsize sign.
+  destruct (@list_cases_all_false x).
+  + rewrite H. unfold size in Hsize. rewrite Nat2N.inj_iff in Hsize. 
+    rewrite Hsize. pose proof (@bvashr_zero b). unfold zeros, size in H0.
+      rewrite Nat2N.id in H0. rewrite H0. apply bv_uge_refl.
+  + unfold bv_ashr_a. rewrite Hsize. rewrite eqb_refl.
+    unfold ashr_aux_a. unfold list2nat_be_a.
+    apply gt0_nmk_list_false in H. rewrite sign. 
+    apply Nat.ltb_lt in H. apply positive_ashr_implies. apply H.
+Qed.
 (* ashr-thrms-end *)
 
 

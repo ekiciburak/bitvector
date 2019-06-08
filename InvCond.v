@@ -1167,7 +1167,7 @@ Proof. intros.
               now rewrite pow_ltb_false in H2.
             *
               apply mk_list_false_not_true in H5.
-              specialize (@not_mk_list_false (bv_not t)); intros.
+              specialize (@gt0_nmk_list_false (bv_not t)); intros.
               assert ((length (bv_not t)) = length t).
               Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.not_list_length) 
                (@BV.BVList.RAWBITVECTOR_LIST.bits,
@@ -1197,7 +1197,7 @@ Proof. intros.
                 @BV.BVList.RAWBITVECTOR_LIST.bitvector,
                 @BV.BVList.RAWBITVECTOR_LIST.size).
             * apply mk_list_false_not_true in H5.
-              specialize (@not_mk_list_false (bv_not t)); intros.
+              specialize (@gt0_nmk_list_false (bv_not t)); intros.
               assert ((length (bv_not t)) = length t).
               Reconstr.reasy (@BV.BVList.RAWBITVECTOR_LIST.not_list_length) 
                (@BV.BVList.RAWBITVECTOR_LIST.bits,
@@ -1264,7 +1264,7 @@ Proof.
     - exists (zeros n). split.
       * apply zeros_size.
       * rewrite <- Hs. rewrite bvashr_zero. apply H.
-  + admit.
+  + intros (x, (Hx, H)). destruct (@sign_0_or_1 s).
 Admitted.
 
 (*------------------------------------------------------------*)
