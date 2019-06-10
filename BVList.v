@@ -3459,12 +3459,6 @@ Proof. intro a.
             } now rewrite H1, app_nil_r, list2N_pos2list.
 Qed.
 
-Lemma listE: forall n, (list2N (mk_list_false n)) = 0.
-Proof. intro n.
-        induction n; intros; try now cbn.
-        cbn. rewrite IHn. easy.
-Qed.
-
 Lemma pos2list_mk_list_false: forall p n,
 list2N (pos2list p [] ++ mk_list_false n) = N.pos p.
 Proof. intro p.
@@ -3473,7 +3467,7 @@ Proof. intro p.
           rewrite IHp. easy.
         - cbn. rewrite pos2list_acc. cbn.
           rewrite IHp. easy.
-        - cbn. rewrite listE. easy.
+        - cbn. rewrite list2N_mk_list_false. easy.
 Qed. 
 
 Lemma list2N_N2List_s: forall a n,
@@ -3481,7 +3475,7 @@ Lemma list2N_N2List_s: forall a n,
  list2N (N2list a n) = a.
 Proof. intro a.
         induction a; intros.
-        - cbn. now rewrite listE.
+        - cbn. now rewrite list2N_mk_list_false.
         - cbn. case_eq (Pos.to_nat (Pos.size p)); intros.
           + contradict H0. Reconstr.rcrush (@Coq.PArith.Pnat.Pos2Nat.is_pos,
               @Coq.Arith.PeanoNat.Nat.neq_0_lt_0) Reconstr.Empty.
