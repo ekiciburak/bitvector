@@ -2277,6 +2277,7 @@ Proof. intros n a H. unfold bv_neg.
        now rewrite length_mk_list_false.
 Qed.
 
+
 (*
 Lemma bv_neg_involutive : forall b, bv_neg (bv_neg b) = b.
 Proof.
@@ -2284,7 +2285,11 @@ Proof.
   induction b.
   + easy.
   + unfold twos_complement at 1. rewrite <- length_twos_complement.
-    unfold twos_complement. 
+    unfold twos_complement in *. 
+    pose proof (@add_list_carry_length_eq (map negb b) (mk_list_false (length b)) true).
+    rewrite (@map_length bool bool negb b) in H. 
+    rewrite (@length_mk_list_false (length b)) in H. specialize (@H eq_refl).
+    rewrite <- H in IHb. 
 Admitted.
 *)
 
