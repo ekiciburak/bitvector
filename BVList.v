@@ -6275,7 +6275,8 @@ Proof.
 Qed.
 
 
-(* x != [] /\ x >= ~x -> sign(x) = 0 *)
+(* x != [] ->
+     x >= ~x <-> sign(x) = 0 *)
 
 Lemma ult_big_endian_implies_not_uge_big_endian : forall (x y : bitvector),
   ult_list_big_endian x y = true -> uge_list_big_endian x y = false.
@@ -6357,17 +6358,6 @@ Proof.
   + simpl. rewrite bv_not_app. rewrite IHx. easy.
 Qed. 
 
-(*Lemma last_app: forall (a b: list bool) c, b <> nil -> last (a ++ b) c = last b c.
-Proof. intro a.
-        induction a; intros.
-        - now cbn.
-        - cbn. case_eq (a0 ++ b); intros.
-          + contradict H0. 
-         	  Reconstr.rsimple Reconstr.Empty (@Coq.Init.Datatypes.app).
-          + specialize (IHa b c). rewrite H0 in IHa.
-            apply IHa. easy.
-Qed.*)
-
 Lemma last_app: forall {A: Type} (a: list A) x d, List.last (a ++ [x]) d = x.
 Proof. intros A a.
         induction a; intros.
@@ -6388,7 +6378,7 @@ Proof. intro a.
            (@Coq.Lists.List.hd).
 Qed.
 
-Lemma uge_bvnot_refl_implies_sign : forall (x : bitvector),
+Lemma uge_bvnot_refl_implies_sign_neg : forall (x : bitvector),
   x <> [] -> bv_uge x (bv_not x) = true -> last x false = true.
 Proof.
   intros x notnil uge. unfold bv_uge in uge.
@@ -6406,6 +6396,26 @@ Proof.
       assert (contr : forall (b1 b2 : bitvector), uge_list_big_endian (false :: b1) (true :: b2) = false).
       { intros b1 b2. apply ult_big_endian_implies_not_uge_big_endian. case b1; case b2; easy. }
       specialize (@contr l (bv_not l)). rewrite contr in uge. easy.
+Qed.
+
+Lemma sign_neg_implies_uge_bvnot_refl : forall (x : bitvector),
+  x <> [] -> last x false = true -> bv_uge x (bv_not x) = true.
+Proof.
+  intros x notnil sign. induction x.
+  + now contradict notnil.
+  + unfold bv_uge. rewrite (@bv_not_size (size (a :: x)) (a :: x) eq_refl).
+    rewrite eqb_refl. unfold uge_list. unfold bv_not, bits.
+    rewrite <- map_rev. rewrite <- hd_rev in sign. induction (rev (a :: x)).
+    - easy.
+    - simpl in sign. rewrite sign. simpl. case l; easy.
+Qed.
+
+Lemma uge_bvnot_refl_eq_sign_neg : forall (x : bitvector),
+  x <> [] -> bv_uge x (bv_not x) = true <-> last x false = true.
+Proof. 
+  split.
+  + now apply uge_bvnot_refl_implies_sign_neg.
+  + now apply sign_neg_implies_uge_bvnot_refl.
 Qed.
 
 

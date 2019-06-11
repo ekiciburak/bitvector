@@ -1249,7 +1249,7 @@ Theorem bvashr_uge2 : forall (n : N), forall (s t : bitvector),
 Proof.
   intros n s t Hs Ht. split.
   + intros H. destruct H.
-    - pose proof (@uge_bvnot_refl_implies_sign s) as sign_s.
+    - pose proof (@uge_bvnot_refl_implies_sign_neg s) as sign_s.
       exists (nat2bv (length s) (size s)). split.
       * rewrite nat2bv_size. apply Hs.
       * case s in *.
@@ -1268,7 +1268,10 @@ Proof.
     - pose proof (@positive_bv_implies_uge_bv_ashr s x) as uge.
       rewrite Hs, Hx in uge. specialize (@uge eq_refl H0).
       right. apply (@bv_uge_list_trans s (bv_ashr_a s x) t uge H).
-    - admit.
+    - left. case s in *.
+      * easy.
+      * assert (b :: s <> nil) by easy.
+        apply (@sign_neg_implies_uge_bvnot_refl (b :: s) H1 H0).
 Admitted.
 
 (*------------------------------------------------------------*)
