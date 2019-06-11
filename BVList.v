@@ -5918,6 +5918,7 @@ Proof.
     - rewrite H0 in H. now contradict H.
 Qed.
 
+
 (*a >=u b -> b <=u a *)
 Lemma uge_list_big_endian_ule_list_big_endian : forall x y,
   uge_list_big_endian x y = true -> ule_list_big_endian y x = true.
@@ -6405,6 +6406,48 @@ Proof.
       assert (contr : forall (b1 b2 : bitvector), uge_list_big_endian (false :: b1) (true :: b2) = false).
       { intros b1 b2. apply ult_big_endian_implies_not_uge_big_endian. case b1; case b2; easy. }
       specialize (@contr l (bv_not l)). rewrite contr in uge. easy.
+Qed.
+
+
+(* Transitivity : x >= y => y >= z => x >= z *)
+Lemma uge_list_big_endian_trans : forall x y z,
+    uge_list_big_endian x y = true ->
+    uge_list_big_endian y z = true ->
+    uge_list_big_endian x z = true.
+Proof.
+  intros. apply uge_list_big_endian_ule_list_big_endian in H.
+  apply uge_list_big_endian_ule_list_big_endian in H0.
+  apply ule_list_big_endian_uge_list_big_endian.
+  apply (@ule_list_big_endian_trans z y x H0 H).
+Qed.
+
+(* bool output *)
+Lemma uge_list_trans : forall x y z,
+  uge_list x y = true -> uge_list y z = true -> uge_list x z = true.
+Proof.
+  unfold uge_list. intros x y z. apply uge_list_big_endian_trans. 
+Qed.
+
+Lemma bv_uge_list_trans : forall (b1 b2 b3 : bitvector), 
+  bv_uge b1 b2 = true -> bv_uge b2 b3 = true -> bv_uge b1 b3 = true.
+Proof.
+  intros. apply bv_uge_bv_ule in H. apply bv_uge_bv_ule in H0. 
+  apply bv_ule_bv_uge. apply (@bv_ule_list_trans b3 b2 b1 H0 H).
+Qed.
+
+(* Prop output *)
+Lemma uge_listP_trans : forall (b1 b2 b3 : bitvector),
+  uge_listP b1 b2 -> uge_listP b2 b3 -> uge_listP b1 b3.
+Proof.
+  intros. apply uge_listP_ule_listP in H. apply uge_listP_ule_listP in H0.
+  apply ule_listP_uge_listP. apply (@ule_listP_trans b3 b2 b1 H0 H).
+Qed.
+
+Lemma bv_ugeP_trans : forall (b1 b2 b3 : bitvector),
+  bv_ugeP b1 b2 -> bv_ugeP b2 b3 -> bv_ugeP b1 b3.
+Proof.
+  intros. apply bv_ugeP_bv_uleP in H. apply bv_ugeP_bv_uleP in H0.
+  apply bv_uleP_bv_ugeP. apply (@bv_uleP_trans b3 b2 b1 H0 H).
 Qed.
 
 
