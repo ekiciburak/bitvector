@@ -7,7 +7,7 @@ Require Import List Bool NArith Psatz (*Int63*) ZArith Nnat.
 
 (*------------------------------Neg------------------------------*)
 (* -x = t <=> True *)
-(*
+
 Theorem bvneg_eq : forall (n : N), forall (t : bitvector),
   (size t) = n -> iff 
     True 
@@ -16,10 +16,10 @@ Proof.
   intros n t Ht. split.
   + intros H. exists (bv_neg t). split.
     - apply bv_neg_size. apply Ht.
-    - admit.
+    - apply bv_neg_involutive. 
   + easy.
-Admitted.
-*)
+Qed.
+
 (*------------------------------------------------------------*)
 
 
