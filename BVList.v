@@ -36,9 +36,9 @@ Unset Strict Implicit.
 (* From Hammer Require Import Hammer Reconstr. *)
 From BV Require Import Reconstr.
 
-(* We temporarily assume proof irrelevance to handle dependently typed
+(* (* We temporarily assume proof irrelevance to handle dependently typed
    bit vectors *)
-Axiom proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2.
+Axiom proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2. *)
 
 Lemma inj a a' : N.to_nat a = N.to_nat a' -> a = a'.
 Proof. intros. lia. Qed.
@@ -113,7 +113,7 @@ Module Type BITVECTOR.
 
   (* Specification *)
   Axiom bits_size     : forall n (bv:bitvector n), List.length (bits bv) = N.to_nat n.
-  Axiom bv_eq_reflect : forall n (a b:bitvector n), bv_eq a b = true <-> a = b.
+(*   Axiom bv_eq_reflect : forall n (a b:bitvector n), bv_eq a b = true <-> a = b. *)
   Axiom bv_eq_refl    : forall n (a:bitvector n), bv_eq a a = true.
 
   Axiom bv_ult_B2P    : forall n (a b:bitvector n), bv_ult a b = true <-> bv_ultP a b.
@@ -401,7 +401,7 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Lemma bits_size n (bv:bitvector n) : List.length (bits bv) = N.to_nat n.
   Proof. unfold bits. now rewrite M.bits_size, wf. Qed.
 
-  (* The next lemma is provable only if we assume proof irrelevance *)
+(*   (* The next lemma is provable only if we assume proof irrelevance *)
   Lemma bv_eq_reflect n (a b: bitvector n) : bv_eq a b = true <-> a = b.
   Proof.
     unfold bv_eq. rewrite M.bv_eq_reflect. split.
@@ -409,7 +409,7 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
       rewrite (proof_irrelevance Ha Hb). reflexivity.
     - intros. case a in *. case b in *. simpl in *.
       now inversion H. (* now intros ->. *)
-  Qed.
+  Qed. *)
 
   Lemma bv_exists: forall n (P: M.bitvector -> Prop),
   (exists (x: bitvector n), P (bv x)) <-> (exists x: M.bitvector, M.size x = n /\ P x).
