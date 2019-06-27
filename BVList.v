@@ -3618,6 +3618,62 @@ Proof. intros n s t x (Hs, (Ht, Hx)).
 Qed.
 
 
+Lemma neg_add_list_ingr : forall (x y : list bool) (b : bool), 
+  map negb (add_list_ingr x y b) = add_list_ingr (map negb x) (map negb y) (negb b).
+Proof.
+  induction x.
+  + induction y; easy.
+  + induction y.
+    - easy.
+    - intros b. case b.
+      * case a.
+        ++ case a0; specialize (@IHx y true); simpl; rewrite IHx; easy.
+        ++ case a0.
+           -- simpl. specialize (@IHx y true). rewrite IHx. easy.
+           -- simpl. specialize (@IHx y false). rewrite IHx. easy.
+      * case a.
+        ++ case a0.
+           -- simpl. specialize (@IHx y true). rewrite IHx. easy.
+           -- simpl. specialize (@IHx y false). rewrite IHx. easy.
+        ++ case a0; simpl; specialize (@IHx y false); rewrite IHx; easy.
+Qed.
+
+Lemma bv_neg_involutive_aux : forall (x y z : list bool), 
+  add_list_ingr (add_list_ingr x y false) z true 
+  = add_list_ingr (add_list_ingr x y true) z false.
+Proof.
+  induction x.
+  + induction y; induction z; easy.
+  + induction y.
+    - induction z; easy.
+    - induction z.
+      * case a; case a0; easy.
+      * case a in *.
+        ++ case a0 in *.
+           -- easy.
+           -- Reconstr.scrush.
+        ++ case a0 in *; Reconstr.scrush.
+Qed. 
+
+Lemma bv_neg_involutive : forall b, bv_neg (bv_neg b) = b.
+Proof.
+  intros b. unfold bv_neg.
+  induction b.
+  + easy.
+  + unfold twos_complement at 1. rewrite <- length_twos_complement.
+    unfold twos_complement in *. 
+    pose proof (@add_list_carry_length_eq (map negb b) (mk_list_false (length b)) true).
+    rewrite (@map_length bool bool negb b) in H. 
+    rewrite (@length_mk_list_false (length b)) in H. specialize (@H eq_refl).
+    rewrite <- H in IHb. rewrite neg_add_list_ingr in *. rewrite not_list_involutative in *. 
+    rewrite not_list_false_true in *. assert (negb true = false) by easy.
+    rewrite H0 in *. case a. 
+    - simpl. rewrite bv_neg_involutive_aux in IHb. rewrite IHb. easy.
+    - simpl. rewrite IHb. easy.
+Qed.
+
+
+
  (* bitvector MULT properties *) 
 
 Lemma prop_mult_bool_step_k_h_len: forall a b c k,

@@ -3,6 +3,48 @@ Require Import List Bool NArith Psatz ZArith Nnat.
 
 Include RAW2BITVECTOR(RAWBITVECTOR_LIST).
 
+
+(*------------------------------Neg------------------------------*)
+(* -x = t <=> True *)
+
+Theorem bvneg_eq : forall (n : N), forall (t : bitvector n),
+  iff 
+    True 
+    (exists (x : bitvector n), bv_eq (bv_neg x) t = true).
+Proof.
+  intros n t. unfold bv_eq, bv_neg in *.  cbn in *. split.
+  + intros H. destruct t as (t, Ht). 
+    specialize (bvneg_eq n t Ht); intros.
+    destruct H0 as (Hltr, Hrtl).
+    specialize (@Hltr H). destruct Hltr as (x, (Hx, Hltr)). 
+    exists (@MkBitvector n x Hx). 
+    now rewrite RAWBITVECTOR_LIST.bv_eq_reflect. 
+  + easy. 
+Qed.
+
+(*------------------------------------------------------------*)
+
+
+(*------------------------------Not------------------------------*)
+(* ~x - t <=> True *)
+Theorem bvnot_eq : forall (n : N), forall (t : bitvector n),
+  iff
+    True
+    (exists (x : bitvector n), bv_eq (bv_not x) t = true).
+Proof.
+  intros n t. unfold bv_eq, bv_not in *. cbn in *. split. 
+  + intros H. destruct t as (t, Ht).
+    specialize (bvnot_eq n t Ht); intros.
+    destruct H0 as (Hltr, Hrtl). specialize (@Hltr H).
+    destruct Hltr as (x, (Hx, Hltr)).
+    exists (@MkBitvector n x Hx).
+    now rewrite RAWBITVECTOR_LIST.bv_eq_reflect.
+  + easy.
+Qed.
+
+(*------------------------------------------------------------*)
+
+
 (*------------------------------And------------------------------*)
 (* t & s = t <=> (exists x, x & s = t) *)
 Theorem bvand_eq : forall (n : N), forall (s t : bitvector n), 
