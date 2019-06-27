@@ -6093,27 +6093,6 @@ Proof.
 Qed.
 
 
-(*
-Lemma skipn_b_zeros : forall (b : bitvector), lt (list2nat_be_a b) (length b) ->
-  skipn (list2nat_be_a b) b = mk_list_false ((length b) - (list2nat_be_a b)).
-Proof.
-  intros b lt_B_lenb. unfold list2nat_be_a in *.
-  pose proof skipn_b_zeros_aux as shrink_b. specialize (@shrink_b b lt_B_lenb).
-  pose proof firstn_skipn as firstn_skipn. 
-  specialize (@firstn_skipn bool (N.to_nat (list2N b)) b).
-  unfold list2N in shrink_b at 1.
-Admitted.
-
-Lemma skipn_bvnot : forall (b : bitvector), lt (list2nat_be_a b) (length b) -> 
-  skipn (list2nat_be_a b) (bv_not b) = 
-  mk_list_true ((length b) - (list2nat_be_a b)).
-Proof.
-  intros b lt_b_lenb. pose proof (@skipn_b_zeros b lt_b_lenb) as skipn_b_zeros.
-  pose proof (@bv_not_false_true (length b - list2nat_be_a b)) as bv_not_false.
-  apply eq_bv_not in skipn_b_zeros. rewrite bv_not_false in skipn_b_zeros.
-  rewrite skipn_bv_not in skipn_b_zeros. apply skipn_b_zeros.
-Qed.
-*)
 (* Shift Right (Arithmetic) *)
 
 Definition ashr_one_bit (a: list bool) (sign: bool) : list bool :=
@@ -6151,6 +6130,231 @@ Definition bv_ashr (a b : bitvector) : bitvector :=
   if ((@size a) =? (@size b))
   then ashr_aux a b
   else nil.
+
+
+(* b >>a 0 = b *)
+Lemma ashr_n_bits_a_zero : forall (b : list bool) (sign : bool),
+  ashr_n_bits_a b 0 sign = b.
+Proof.
+  intros b. unfold ashr_n_bits_a. 
+  case_eq ((0 <? length b)%nat); intros.
+  + case_eq (eqb sign false); intros; simpl;
+    now rewrite app_nil_r.
+  + case_eq (eqb sign false); intros;
+    rewrite Nat.ltb_ge in H; apply le_n_0_eq in H;
+    pose proof (@empty_list_length bool b); symmetry in H;
+    apply H1 in H; rewrite H; easy.
+Qed.
+
+Lemma bvashr_zero : forall (b : bitvector), bv_ashr_a b (zeros (size b)) = b.
+Proof. 
+  intros b. unfold bv_ashr_a. rewrite zeros_size. 
+  rewrite N.eqb_refl. unfold ashr_aux_a.
+  unfold zeros, size, list2nat_be_a. rewrite Nat2N.id. 
+  rewrite list2N_mk_list_false. simpl. apply ashr_n_bits_a_zero.
+Qed.
+
+
+(* ashr <-> ashr_a *)
+
+Lemma ashr_n_ashr_one_comm: forall n a b, 
+  (ashr_n_bits (ashr_one_bit a b) n b) = ashr_one_bit (ashr_n_bits a n b) b.
+Proof. 
+  induction n; intros.
+  + easy.
+  + simpl. now rewrite IHn.
+Qed.
+
+Lemma ashr_skip_n_one_bit: forall n l b sign,
+  ((n <? length (b :: l))%nat = true) ->
+  ashr_one_bit (skipn n (b :: l)) sign =  skipn n l ++ [sign].
+Proof. 
+  intro n. induction n; intros.
+  + easy.
+  + simpl. 
+    case_eq l; intros. 
+    - subst. cbn in *. now contradict H.
+    - rewrite <- (IHn l0 b0). easy.
+      apply Nat.ltb_lt in H.
+      apply Nat.ltb_lt. subst. cbn in *. lia.
+Qed.
+
+Lemma mk_list_false_cons2: forall n,
+mk_list_false n ++ [false] = false :: mk_list_false n.
+Proof. intro n.
+       induction n; intros.
+       now cbn.
+       cbn. now rewrite <- IHn.
+Qed.
+
+Lemma ashr_one_bit_append_false: forall a n,
+  ashr_one_bit (a ++ (mk_list_false n)) false = 
+  (ashr_one_bit a) false ++ (mk_list_false n).
+Proof. 
+  intro a. induction a; intros.
+  + simpl. case_eq n; intros.
+    - easy.
+    - simpl. now rewrite mk_list_false_cons2.
+  + simpl. rewrite !app_assoc_reverse.
+    assert (mk_list_false n ++ [false] = [false] ++ mk_list_false n).
+    { simpl. induction n; intros.
+      + now cbn. 
+      + cbn. now rewrite <- IHn. } 
+    now rewrite H. 
+Qed.
+
+Lemma mk_list_true_cons2: forall n,
+mk_list_true n ++ [true] = true :: mk_list_true n.
+Proof. 
+  intro n. induction n; intros.
+  + now cbn.
+  + cbn. now rewrite <- IHn.
+Qed.
+
+Lemma ashr_one_bit_append_true: forall a n,
+  ashr_one_bit (a ++ (mk_list_true n)) true = 
+  (ashr_one_bit a) true ++ (mk_list_true n).
+Proof. 
+  intro a. induction a; intros.
+  + simpl. case_eq n; intros.
+    - easy.
+    - simpl. now rewrite mk_list_true_cons2.
+  + simpl. rewrite !app_assoc_reverse.
+    assert (mk_list_true n ++ [true] = [true] ++ mk_list_true n).
+    { simpl. induction n; intros.
+      + now cbn. 
+      + cbn. now rewrite <- IHn. } 
+    now rewrite H. 
+Qed.
+
+Lemma ashr_one_bit_skipn_sign: forall n a b,
+  length a = S n -> ashr_one_bit (skipn n a) b = [b].
+Proof. 
+  intro n. induction n; intros.
+  + cbn. case_eq a; intros. 
+    - subst. now contradict H.
+    - cbn. assert (l = nil).
+      { subst. cbn in *. inversion H.
+        apply length_zero_iff_nil in H1.
+        now subst. } 
+      now rewrite H1, app_nil_l.
+  + cbn. case_eq a; intros.
+    - subst. now contradict H.
+    - apply IHn. subst. cbn in H. lia.
+Qed.
+
+Lemma ashr_one_bit_skipn_false: forall n a, length a = S n ->
+  ashr_one_bit (skipn n a ++ mk_list_false n) false 
+  = mk_list_false n ++ [false].
+Proof. 
+  intro n. induction n; intros.
+  + cbn. rewrite app_nil_r. case_eq a; intros.
+    subst. now contradict H. subst. cbn in *. 
+    inversion H. apply length_zero_iff_nil in H1.
+    subst. now rewrite app_nil_l. 
+  + cbn. case_eq a; intros. subst. now contradict H.
+    rewrite <- (IHn l). rewrite ashr_one_bit_append_false.
+    assert (false :: mk_list_false n = mk_list_false (S n)) by easy.
+    rewrite H1, ashr_one_bit_append_false.
+    cbn. rewrite ashr_one_bit_skipn_sign. easy.
+    subst. cbn in *. lia.
+    subst. cbn in *. lia.
+Qed.
+
+Lemma ashr_one_bit_skipn_true: forall n a, length a = S n ->
+  ashr_one_bit (skipn n a ++ mk_list_true n) true
+  = mk_list_true n ++ [true].
+Proof. 
+  intro n. induction n; intros.
+  + cbn. rewrite app_nil_r. case_eq a; intros.
+    subst. now contradict H. subst. cbn in *. 
+    inversion H. apply length_zero_iff_nil in H1.
+    subst. now rewrite app_nil_l. 
+  + cbn. case_eq a; intros. subst. now contradict H.
+    rewrite <- (IHn l). rewrite ashr_one_bit_append_true.
+    assert (true :: mk_list_true n = mk_list_true (S n)) by easy.
+    rewrite H1, ashr_one_bit_append_true.
+    cbn. rewrite ashr_one_bit_skipn_sign. easy.
+    subst. cbn in *. lia.
+    subst. cbn in *. lia.
+Qed.
+
+Lemma ashr_one_bit_all_false: forall (a: list bool),
+  ashr_one_bit (mk_list_false (length a)) false = mk_list_false (length a).
+Proof. 
+  intro a. induction a; intros.
+  - now cbn.
+  - cbn. now rewrite mk_list_false_cons2.
+Qed.
+
+Lemma ashr_one_bit_all_true: forall (a: list bool),
+  ashr_one_bit (mk_list_true (length a)) true = mk_list_true (length a).
+Proof. 
+  intro a. induction a; intros.
+  - now cbn.
+  - cbn. now rewrite mk_list_true_cons2.
+Qed.
+
+Theorem bv_ashr_aux_eq: forall n a b, 
+  ashr_n_bits a n b = ashr_n_bits_a a n b.
+Proof. 
+  induction n. 
+  + intros. simpl. rewrite ashr_n_bits_a_zero. easy.
+  + intros a b. simpl. rewrite ashr_n_ashr_one_comm. 
+    rewrite IHn. unfold ashr_n_bits_a.
+    case_eq ((S n <? length a)%nat); intros case.
+    - apply Nat.ltb_lt in case. 
+      apply Nat.lt_succ_l in case. apply Nat.ltb_lt in case. 
+      rewrite case. case_eq (eqb b false); intros sign.
+      * rewrite eqb_true_iff in sign. subst. 
+        case a in *.
+        ++ now contradict case. 
+        ++ simpl. 
+           assert (cons_app: skipn n a ++ false :: mk_list_false n 
+           = skipn n a ++ [false] ++ mk_list_false n) by easy. 
+           rewrite cons_app. rewrite app_assoc. 
+           rewrite <- (@ashr_skip_n_one_bit n a b false case).
+           rewrite ashr_one_bit_append_false. easy.
+      * rewrite eqb_false_iff in sign. 
+        apply not_false_is_true in sign. subst.
+        case a in *.
+        ++ now contradict case.
+        ++ simpl.
+           assert (cons_app: skipn n a ++ true :: mk_list_true n 
+           = skipn n a ++ [true] ++ mk_list_true n) by easy. 
+           rewrite cons_app. rewrite app_assoc.
+           rewrite <- (@ashr_skip_n_one_bit n a b true case).
+           rewrite ashr_one_bit_append_true. easy.
+    - case_eq ((n <? length a)%nat); intros case2.
+      * assert (len : length a = S n).
+        { apply Nat.ltb_lt in case2.
+          apply Nat.ltb_ge in case. lia. }
+        rewrite len. case_eq (eqb b false); intros sign. 
+        ++ rewrite eqb_true_iff in sign. rewrite sign. 
+           rewrite (@ashr_one_bit_skipn_false n a len).
+           now rewrite mk_list_false_cons2.
+        ++ rewrite eqb_false_iff in sign. 
+           apply not_false_is_true in sign. rewrite sign.
+           rewrite (@ashr_one_bit_skipn_true n a len).
+           now rewrite mk_list_true_cons2.
+      * case_eq (eqb b false); intros sign.
+        ++ rewrite eqb_true_iff in sign. rewrite sign. 
+           now rewrite ashr_one_bit_all_false.
+        ++ rewrite eqb_false_iff in sign. 
+           apply not_false_is_true in sign. rewrite sign.
+           now rewrite ashr_one_bit_all_true.
+Qed.
+
+Theorem bv_ashr_eq: forall (a b : bitvector),
+  bv_ashr a b = bv_ashr_a a b.
+Proof. 
+  intros. unfold bv_ashr, bv_ashr_a.
+  case_eq (size a =? size b); intros; try easy.
+  unfold ashr_aux. unfold ashr_aux_a. 
+  now rewrite bv_ashr_aux_eq.
+Qed.
+
+
 
 Lemma length_ashr_one_bit: forall a sign, length (ashr_one_bit a sign) = length a.
 Proof. intro a. destruct sign.
