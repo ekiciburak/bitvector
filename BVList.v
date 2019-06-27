@@ -83,10 +83,12 @@ Module Type BITVECTOR.
   Parameter bv_ult    : forall n, bitvector n -> bitvector n -> bool.
   Parameter bv_slt    : forall n, bitvector n -> bitvector n -> bool.
   Parameter bv_ule   : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_uge    : forall n, bitvector n -> bitvector n -> bool.
 
   Parameter bv_ultP   : forall n, bitvector n -> bitvector n -> Prop.
   Parameter bv_sltP   : forall n, bitvector n -> bitvector n -> Prop.
   Parameter bv_uleP   : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_ugeP   : forall n, bitvector n -> bitvector n -> Prop.
 
   Parameter bv_ugt    : forall n, bitvector n -> bitvector n -> bool.
 
@@ -126,6 +128,7 @@ Module Type BITVECTOR.
   Axiom bv_ugt_not_eq : forall n (a b:bitvector n), bv_ugt a b = true -> a <> b.
   Axiom bv_ugt_not_eqP: forall n (a b:bitvector n), bv_ugtP a b -> a <> b.
   Axiom bv_ule_B2P    : forall n (a b:bitvector n), bv_ule a b = true <-> bv_uleP a b.
+  Axiom bv_uge_B2P    : forall n (a b:bitvector n), bv_uge a b = true <-> bv_ugeP a b.
 
   Axiom bv_and_comm   : forall n (a b:bitvector n), bv_eq (bv_and a b) (bv_and b a) = true.
   Axiom bv_or_comm    : forall n (a b:bitvector n), bv_eq (bv_or a b) (bv_or b a) = true.
@@ -177,6 +180,8 @@ Parameter bv_ult     : bitvector -> bitvector -> bool.
 Parameter bv_slt     : bitvector -> bitvector -> bool.
 Parameter bv_ule     : bitvector -> bitvector -> bool.
 Parameter bv2nat_a   : bitvector -> nat.
+Parameter bv_uge     : bitvector -> bitvector -> bool.
+Parameter bv_ugeP    : bitvector -> bitvector -> Prop.
 
 Parameter bv_ultP    : bitvector -> bitvector -> Prop.
 Parameter bv_sltP    : bitvector -> bitvector -> Prop.
@@ -254,6 +259,7 @@ Axiom bv_ugt_not_eq  : forall a b, bv_ugt a b = true -> a <> b.
 Axiom bv_ugt_not_eqP : forall a b, bv_ugtP a b -> a <> b.
 Axiom bv_ugt_B2P     : forall a b, bv_ugt a b = true <-> bv_ugtP a b.
 Axiom bv_ule_B2P     : forall a b, bv_ule a b = true <-> bv_uleP a b.
+Axiom bv_uge_B2P     : forall a b, bv_uge a b = true <-> bv_ugeP a b.
 
 Axiom bv_and_comm    : forall n a b, size a = n -> size b = n -> bv_and a b = bv_and b a.
 Axiom bv_or_comm     : forall n a b, size a = n -> size b = n -> bv_or a b = bv_or b a.
@@ -326,6 +332,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
 
   Definition bv_uleP n (bv1 bv2:bitvector n) := M.bv_uleP bv1 bv2.
 
+  Definition bv_ugeP n (bv1 bv2:bitvector n) := M.bv_ugeP bv1 bv2.
+
   Definition bv_and n (bv1 bv2:bitvector n) : bitvector n :=
     @MkBitvector n (M.bv_and bv1 bv2) (M.bv_and_size (wf bv1) (wf bv2)).
 
@@ -354,6 +362,8 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Definition bv_ugt n (bv1 bv2:bitvector n) : bool := M.bv_ugt bv1 bv2.
 
   Definition bv_ule n (bv1 bv2:bitvector n) : bool := M.bv_ule bv1 bv2. 
+
+  Definition bv_uge n (bv1 bv2:bitvector n) : bool := M.bv_uge bv1 bv2.
 
   Definition bv2nat_a n (bv1: bitvector n) : nat := M.bv2nat_a bv1.
 
@@ -504,6 +514,12 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Proof.
       unfold bv_uleP, bv_ule; intros; split; intros;
       now apply M.bv_ule_B2P.
+  Qed.
+
+  Lemma bv_uge_B2P: forall n (a b: bitvector n), bv_uge a b = true <-> bv_ugeP a b.
+  Proof.
+      unfold bv_ugeP, bv_uge; intros; split; intros;
+      now apply M.bv_uge_B2P.
   Qed.
 
   Lemma bv_and_comm n (a b:bitvector n) : bv_eq (bv_and a b) (bv_and b a) = true.
@@ -2419,6 +2435,133 @@ Proof.
       * intros. apply Neqb_ok in H1. apply Neqb_ok in H2. rewrite <- H1 in H2.
         rewrite H2 in H3. pose proof eqb_refl as eqb_refl.
         now rewrite N.eqb_refl in H3.
+    - intros. rewrite H2 in H0. now contradict H0.
+  + intros. rewrite H1 in H. now contradict H.
+Qed.
+
+
+(* x <= y => y <= z => x <= z *)
+
+Lemma ule_list_big_endian_trans : forall x y z, 
+  ule_list_big_endian x y = true ->
+  ule_list_big_endian y z = true -> 
+  ule_list_big_endian x z = true.
+Proof.
+  intros x. induction x.
+  + intros y z. case y.
+    - intros Hxy Hyz. case z in *; easy.
+    - intros b l Hxy Hyz. easy.
+  + intros y z. case y.
+    - simpl. case x; easy.
+    - intros b l. intros. simpl in *. case x in *.
+      * case z in *.
+        { case l in *; easy. }
+        { case l in *.
+          + rewrite orb_true_iff in H. destruct H.
+            ++ rewrite eqb_true_iff in H. 
+               case z in *; now rewrite <- H in H0.
+            ++ rewrite andb_true_iff, negb_true_iff in H.
+               destruct H. subst. case z in *.
+              -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
+                 destruct H0.
+                ** right. split; easy.
+                ** now destruct H.
+              -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
+                 destruct H0.
+                ** right. rewrite andb_true_iff, negb_true_iff. destruct H.
+                   now split.
+                ** rewrite andb_true_iff, negb_true_iff in H. now destruct H.
+          + rewrite !orb_true_iff, !andb_true_iff in H, H0.
+            destruct H.
+            * simpl in H. easy. 
+            * destruct H. apply negb_true_iff in H. subst. 
+              simpl.  destruct H0.
+              - destruct H. apply Bool.eqb_prop in H.
+                subst. case z; easy.
+              - destruct H. easy. }
+      * case l in *.
+        { rewrite !orb_true_iff, !andb_true_iff in H.
+          simpl in H. destruct H.
+          + destruct H. case x in H1; easy.
+          + destruct H. apply negb_true_iff in H.
+            subst. simpl in H0. case z in *.
+            * easy.
+            * case b in *.
+              - simpl in H0. case z in *; easy.
+              - simpl in H0. case z in *; easy. }
+        { case z in *; try easy.
+          rewrite !orb_true_iff, !andb_true_iff in *.
+          destruct H.
+          + destruct H. destruct H0.
+            * destruct H0. apply Bool.eqb_prop in H.
+              apply Bool.eqb_prop in H0. subst. left. split.
+              - apply Bool.eqb_reflx.
+              - specialize (@IHx (b1 :: l) z H1 H2).
+                apply IHx. 
+            * right. apply Bool.eqb_prop in H. now subst.
+          + right. destruct H0.
+            * destruct H0. apply Bool.eqb_prop in H0. now subst.
+            * split; easy. }
+Qed.
+
+(* bool output *)
+Lemma ule_list_trans : forall x y z,
+  ule_list x y = true -> ule_list y z = true -> ule_list x z = true.
+Proof.
+  unfold ule_list. intros x y z. apply ule_list_big_endian_trans. 
+Qed.
+
+Lemma bv_ule_list_trans : forall (b1 b2 b3 : bitvector), 
+  bv_ule b1 b2 = true -> bv_ule b2 b3 = true -> bv_ule b1 b3 = true.
+Proof.
+  intros. unfold bv_ule in *. case_eq (size b1 =? size b2).
+  + intros. pose proof H as bv_ule_b1_b2.
+    rewrite H1 in bv_ule_b1_b2. case_eq (size b2 =? size b3).
+    - intros. pose proof H0 as bv_ule_b2_b3.
+      rewrite H2 in bv_ule_b2_b3. case_eq (size b1 =? size b3).
+      * intros. pose proof ule_list_trans as ule_list_trans.
+        specialize (@ule_list_trans b1 b2 b3 bv_ule_b1_b2 bv_ule_b2_b3).
+        apply ule_list_trans.
+      * intros. apply Neqb_ok in H1. apply Neqb_ok in H2. rewrite <- H1 in H2.
+        rewrite H2 in H3. pose proof eqb_refl as eqb_refl.
+        specialize (@N.eqb_refl (size b3)). rewrite N.eqb_refl in H3.
+        now contradict eqb_refl.
+    - intros. rewrite H2 in H0. now contradict H0.
+  + intros. rewrite H1 in H. now contradict H.
+Qed.
+ 
+(* Prop output *)
+Lemma ule_listP_trans : forall (b1 b2 b3 : bitvector),
+  ule_listP b1 b2 -> ule_listP b2 b3 -> ule_listP b1 b3.
+Proof.
+  unfold ule_listP. unfold ule_list. intros.
+  case_eq (ule_list_big_endian (rev b1) (rev b3)).
+  + intros. easy.
+  + intros. case_eq (ule_list_big_endian (rev b1) (rev b2)).
+    - intros. case_eq (ule_list_big_endian (rev b2) (rev b3)).
+      * intros. pose proof ule_list_big_endian_trans.
+        specialize (@H4 (rev b1) (rev b2) (rev b3) H2 H3).
+        rewrite H4 in H1. now contradict H1.
+      * intros. unfold ule_listP in H0. unfold ule_list in H0. 
+        rewrite H3 in H0. apply H0.
+    - intros. rewrite H2 in H. apply H.
+Qed.
+
+Lemma bv_uleP_trans : forall (b1 b2 b3 : bitvector),
+  bv_uleP b1 b2 -> bv_uleP b2 b3 -> bv_uleP b1 b3.
+Proof.
+  intros. unfold bv_uleP in *. case_eq (size b1 =? size b2).
+  + intros. pose proof H as bv_uleP_b1_b2.
+    rewrite H1 in bv_uleP_b1_b2. case_eq (size b2 =? size b3).
+    - intros. pose proof H0 as bv_uleP_b2_b3.
+      rewrite H2 in bv_uleP_b2_b3. case_eq (size b1 =? size b3).
+      * intros. pose proof ule_listP_trans as ule_listP_trans.
+        specialize (@ule_listP_trans b1 b2 b3 bv_uleP_b1_b2 bv_uleP_b2_b3).
+        apply ule_listP_trans.
+      * intros. apply Neqb_ok in H1. apply Neqb_ok in H2. rewrite <- H1 in H2.
+        rewrite H2 in H3. pose proof eqb_refl as eqb_refl.
+        specialize (@N.eqb_refl (size b3)). rewrite N.eqb_refl in H3.
+        now contradict eqb_refl.
     - intros. rewrite H2 in H0. now contradict H0.
   + intros. rewrite H1 in H. now contradict H.
 Qed.
@@ -4706,6 +4849,929 @@ Proof.
 Qed.
 
 
+(* x <= y <-> (x < y \/ x = y) *)
+Lemma ult_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
+  ult_list_big_endian b1 b2 = true -> 
+  ult_list_big_endian (b :: b1) (b :: b2) = true.
+Proof.
+  intros. unfold ult_list_big_endian. case b1 in *.
+  + case b2 in *; easy.
+  + case b2 in *.
+    - simpl in H. case b1 in *; easy.
+    - rewrite orb_true_iff, andb_true_iff. left. simpl. split.
+      * rewrite eqb_true_iff. easy.
+      * fold ult_list_big_endian. apply H.
+Qed.
+
+Lemma ule_list_big_endian_implies_ult_list_big_endian_or_eq : forall (x y : list bool), 
+  ule_list_big_endian x y = true -> ult_list_big_endian x y = true \/ (x = y).
+Proof.
+  induction x.
+  + intros y H. induction y.
+    - now right.
+    - easy.
+  + intros y H. induction y.
+    - rewrite ule_list_big_endian_cons_nil in H. easy.
+    - case x in *.
+      * case y in *.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           destruct H.
+           *** rewrite eqb_true_iff in H. right. now rewrite H.
+           *** rewrite negb_true_iff in H. destruct H as (Ha, Ha0).
+               rewrite Ha, Ha0. now left.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           rewrite andb_true_iff, negb_true_iff in H. destruct H.
+           *** destruct H as (H, contr). easy.
+           *** destruct H as (Ha, Ha0). rewrite Ha, Ha0.
+               now left.
+      * case y in *.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           rewrite andb_true_iff, negb_true_iff in H. destruct H.
+           *** rewrite eqb_true_iff in H. destruct H. case x in *; easy.
+           *** destruct H as (Ha, Ha0). rewrite Ha, Ha0. now left.
+        ** specialize (@IHx (b0 :: y)). 
+           assert (Hunfolded : (a = false /\ a0 = true) \/ 
+                   (a = a0 /\ ule_list_big_endian (b :: x) (b0 :: y) = true)).
+           { unfold ule_list_big_endian in H. fold ule_list_big_endian in H.
+             rewrite orb_true_iff, andb_true_iff in H. destruct H.
+             + right. rewrite eqb_true_iff in H. destruct H. split.
+               * apply H.
+               * apply H0.
+             + rewrite andb_true_iff, negb_true_iff in H. left. apply H. }
+           destruct Hunfolded.
+           *** destruct H0 as (Ha, Ha0). rewrite Ha, Ha0. now left.
+           *** case a in *.
+               ++ case a0 in *.
+                  +++ destruct H0. specialize (@IHx H1). destruct IHx.
+                      -- left. apply (@ult_list_big_endian_cons true). apply H2.
+                      -- right. now rewrite H2.
+                  +++ destruct H0. now contradict H0.
+               ++ case a0 in *.
+                  +++ left. easy.
+                  +++ destruct H0. specialize (@IHx H1). destruct IHx.
+                      -- left. apply (@ult_list_big_endian_cons false). apply H2.
+                      -- right. now rewrite H2.
+Qed.
+
+Lemma ult_list_big_endian_or_eq_implies_ule_list_big_endian : forall (x y : list bool), 
+  ult_list_big_endian x y = true \/ (x = y) -> ule_list_big_endian x y = true.
+Proof.
+  induction x.
+  + intros y H. induction y.
+    - easy.
+    - destruct H; easy.
+  + intros y H. induction y.
+    - destruct H; easy.
+    - destruct H.
+      * apply ult_list_big_endian_implies_ule. apply H.
+      * rewrite H. apply ule_list_big_endian_refl.
+Qed.
+
+Lemma bv_ule_eq : forall (x y : bitvector), bv_ule x y = true <->
+  (bv_ult x y = true) \/ (x = y).
+Proof.
+  intros x y. 
+  assert (eq : x = y <-> (rev x) = (rev y)).
+  { split.
+    + apply rev_func.
+    + apply rev_inj.
+  }
+  split.
+  + rewrite eq. unfold bv_ule, bv_ult. 
+    case_eq (size x =? size y); intros case. 
+    - unfold ule_list, ult_list. intros H. induction (rev x).
+      * induction (rev y).
+        ++ now right.
+        ++ easy.
+      * induction (rev y).
+        ++ apply ule_list_big_endian_implies_ult_list_big_endian_or_eq. apply H.
+        ++ unfold ule_list in H. unfold ult_list. 
+           apply ule_list_big_endian_implies_ult_list_big_endian_or_eq. apply H.
+    - intros. now contradict H.
+  + rewrite eq. unfold bv_ule, bv_ult.
+    case_eq (size x =? size y); intros case. 
+    - unfold ule_list, ult_list. intros H. induction (rev x).
+      * induction (rev y).
+        ++ easy.
+        ++ destruct H; easy.
+      * induction (rev y);
+        apply ult_list_big_endian_or_eq_implies_ule_list_big_endian; apply H.
+    - intros. destruct H. 
+      * now contradict H.
+      * rewrite <- eq in H. rewrite H in case. rewrite N.eqb_refl in case.
+        easy.
+Qed.
+
+
+(* size x = size y -> x !> y -> x <= y *)
+
+Lemma ule_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
+  ule_list_big_endian b1 b2 = true -> 
+  ule_list_big_endian (b :: b1) (b :: b2) = true.
+Proof.
+  intros. unfold ule_list_big_endian. case b1 in *.
+  + case b2 in *.
+    - rewrite orb_true_iff, eqb_true_iff. now left.
+    - easy.
+  + case b2 in *.
+    - simpl in H. case b1 in *; easy.
+    - rewrite orb_true_iff, andb_true_iff. left. simpl. split.
+      * rewrite eqb_true_iff. easy.
+      * fold ule_list_big_endian. apply H.
+Qed.
+
+Lemma not_ugt_list_big_endian_implies_ule_list_big_endian : forall (x y : list bool), 
+  size x = size y -> ugt_list_big_endian x y = false -> ule_list_big_endian x y = true.
+Proof.
+  induction x.
+  + intros y. case y.
+    - easy.
+    - intros b l Hxy H. now contradict Hxy.
+  + intros y Hxy H. case y in *. 
+    - now contradict Hxy.
+    - case x in *.
+      * case y in *.
+        ++ simpl in H. rewrite andb_false_iff, negb_false_iff in H.
+           destruct H.
+           -- rewrite H. case b; easy.
+           -- rewrite H. case a; easy.
+        ++ assert (size [a] <> size (b :: b0 :: y)). 
+           { unfold size. rewrite <- N2Nat.inj_iff. 
+             rewrite Nat2N.id. rewrite Nat2N.id. easy. } 
+           easy.
+      * case y in *.
+        ++ assert (size (a :: b0 :: x) <> size [b]).
+           { unfold size. rewrite <- N2Nat.inj_iff. 
+             rewrite Nat2N.id. rewrite Nat2N.id. easy. } 
+           easy.
+        ++ unfold ugt_list_big_endian in H.
+           fold ugt_list_big_endian in H. 
+           rewrite orb_false_iff, andb_false_iff in H.
+           destruct H. rewrite andb_false_iff, negb_false_iff in H0.
+           destruct H0.
+           -- rewrite H0. destruct H.
+              ** rewrite H0 in H. rewrite eqb_false_iff in H.
+                 apply not_eq_sym in H. apply not_false_is_true in H. 
+                 rewrite H. easy.
+              ** case b.
+                 +++ easy.
+                 +++ assert (size (b0 :: x) = size (b1 :: y)).
+                     { unfold size in *. rewrite <- N2Nat.inj_iff in Hxy. 
+                       rewrite Nat2N.id in Hxy. rewrite Nat2N.id in Hxy. 
+                       simpl in Hxy. apply Nat.succ_inj in Hxy. 
+                       rewrite <- N2Nat.inj_iff. rewrite Nat2N.id. 
+                       rewrite Nat2N.id. simpl. rewrite Hxy. easy. }
+                      specialize (@IHx (b1 :: y) H1 H). 
+                      apply ule_list_big_endian_cons. apply IHx.
+           -- rewrite H0. destruct H.
+              ** rewrite eqb_false_iff, H0 in H. 
+                 apply not_true_is_false in H. rewrite H. easy.
+              ** case a.
+                 +++ assert (size (b0 :: x) = size (b1 :: y)).
+                     { unfold size in *. rewrite <- N2Nat.inj_iff in Hxy. 
+                       rewrite Nat2N.id in Hxy. rewrite Nat2N.id in Hxy. 
+                       simpl in Hxy. apply Nat.succ_inj in Hxy. 
+                       rewrite <- N2Nat.inj_iff. rewrite Nat2N.id. 
+                       rewrite Nat2N.id. simpl. rewrite Hxy. easy. }
+                     specialize (@IHx (b1 :: y) H1 H).
+                     apply ule_list_big_endian_cons. apply IHx.
+                 +++ easy.
+Qed.
+
+Lemma not_bv_ugt_implies_bv_ule : forall (x y : bitvector), 
+  size x = size y -> (bv_ugt x y = false) -> bv_ule x y = true.
+Proof.
+  intros x y Hsize H. unfold bv_ugt, bv_ule in *.
+  case_eq (size x =? size y); intros Hxy.
+  - rewrite Hxy in H. unfold size in Hxy. 
+    rewrite <- rev_length in Hxy.
+    rewrite <- (@rev_length bool y) in Hxy.
+    unfold ugt_list, ule_list in *. induction (rev x).
+    * case (rev y) in *.
+      ++ easy.
+      ++ simpl in *. apply Hxy. 
+    * case (rev y) in *.
+      ++ simpl in *. case l in *; apply Hxy.
+      ++ apply Neqb_ok in Hxy. 
+         apply not_ugt_list_big_endian_implies_ule_list_big_endian. 
+         apply Hxy. apply H.
+  - apply N.eqb_neq in Hxy. easy. 
+Qed.
+
+
+(* b1 = b2 -> !(b1 > b2) *)
+
+Lemma ugt_list_big_endian_not_refl : forall (b : list bool),
+ ugt_list_big_endian b b = false.
+Proof.
+  intros. induction b.
+  + easy.
+  + simpl. case b in *.
+    - apply andb_negb_r.
+    - rewrite orb_false_iff, andb_false_iff. split.
+      * now right.
+      * apply andb_negb_r.
+Qed.
+
+Lemma eq_not_ugt_list_big_endian : forall (b1 b2 : list bool),
+  b1 = b2 -> ugt_list_big_endian b1 b2 = false.
+Proof.
+  induction b1.
+  + intros. case b2; easy.
+  + intros b2 H. induction b2.
+    - easy.
+    - rewrite H. apply ugt_list_big_endian_not_refl. 
+Qed.
+
+Lemma eq_not_bv_ugt : forall (b1 b2 : bitvector),
+  b1 = b2 -> bv_ugt b1 b2 = false.
+Proof.
+  intros b1 b2 H. unfold bv_ugt.
+  case_eq (size b1 =? size b2); intros size.
+  + unfold ugt_list. apply rev_func in H.
+    apply eq_not_ugt_list_big_endian. apply H.
+  + easy.
+Qed.
+
+
+
+(* x <= y -> x !> y *)
+
+Lemma bv_ule_implies_not_bv_ugt : forall (x y : bitvector), 
+  bv_ule x y = true -> (bv_ugt x y = false).
+Proof.
+  intros x y. intros Hule. rewrite bv_ule_eq in Hule. 
+  destruct Hule.
+  - apply bv_ult_not_bv_ugt. apply H.
+  - apply eq_not_bv_ugt. apply H.
+Qed.
+
+
+(* unsigned greater than or equal to *)
+
+Fixpoint uge_list_big_endian (x y : list bool) :=
+  match x, y with
+  | nil, nil => true
+  | nil, _ => false 
+  | _, nil => false 
+  | xi :: nil, yi :: nil => orb (eqb xi yi) (andb xi (negb yi))
+  | xi :: x', yi :: y' =>
+    orb (andb (Bool.eqb xi yi) (uge_list_big_endian x' y'))
+          (andb xi (negb yi))
+  end. 
+
+(* bool output *)
+Definition uge_list (x y: list bool) :=
+  (uge_list_big_endian (List.rev x) (List.rev y)).
+
+Definition bv_uge (a b : bitvector) : bool :=
+  if @size a =? @size b then uge_list a b else false.
+
+(* Prop output *)
+Definition uge_listP (x y: list bool) :=
+  if uge_list x y then True else False.
+
+Definition bv_ugeP (a b : bitvector) : Prop :=
+  if @size a =? @size b then uge_listP a b else False.
+
+
+(* Equivalence of boolean and Prop comparisons *)
+Lemma bv_uge_B2P: forall x y, bv_uge x y = true <-> bv_ugeP x y.
+Proof.
+  intros. split; intros; unfold bv_uge, bv_ugeP in *.
+  + case_eq (size x =? size y); intros.
+    - rewrite H0 in H. unfold uge_listP. now rewrite H.
+    - rewrite H0 in H. now contradict H.
+  + unfold uge_listP in *. case_eq (size x =? size y); intros.
+    - rewrite H0 in H. case_eq (uge_list x y); intros.
+      * easy.
+      * rewrite H1 in H. now contradict H.
+    - rewrite H0 in H. now contradict H.
+Qed.
+
+
+(* a <=u b -> b >=u a *)
+Lemma ule_list_big_endian_uge_list_big_endian : forall x y, 
+  ule_list_big_endian x y = true -> uge_list_big_endian y x = true.
+Proof.
+  intros x. induction x.
+  + simpl. intros y. case y; easy.
+  + intros y. case y.
+    - intros. case a; case x in *; simpl in H; now contradict H.
+    - intros b l. simpl.
+      specialize (IHx l). case x in *.
+      * simpl. case l in *.
+        { case a; case b; simpl; easy. }
+        { case a; case b; simpl; easy. }
+      * rewrite !orb_true_iff, !andb_true_iff. intro. destruct H.
+        { destruct H. apply IHx in H0. apply Bool.eqb_prop in H.
+          rewrite H. rewrite H0. case b; case l; easy. }
+        { destruct H. apply negb_true_iff in H. subst. case l; easy. }
+Qed. 
+
+Lemma ule_list_uge_list : forall x y, ule_list x y = true -> uge_list y x = true.
+Proof.
+  intros x y. unfold ule_list. intros. 
+  apply ule_list_big_endian_uge_list_big_endian in H.
+  unfold uge_list. apply H.
+Qed.
+
+Lemma bv_ule_bv_uge : forall x y, bv_ule x y = true -> bv_uge y x = true.
+Proof.
+  intros x y. unfold bv_ule.
+  case_eq (size x =? size y); intros.
+  - apply ule_list_uge_list in H0. unfold bv_uge. rewrite (@N.eqb_sym (size x) (size y)) in H. 
+    rewrite H. apply H0. 
+  - now contradict H0. 
+Qed.
+
+Lemma ule_listP_uge_listP : forall x y, ule_listP x y -> uge_listP y x.
+Proof.
+  unfold ule_listP.
+  intros. unfold ule_list in H.
+  case_eq (ule_list_big_endian (List.rev x) (List.rev y)).
+  + intros. unfold uge_listP. unfold uge_list. 
+    apply (@ule_list_big_endian_uge_list_big_endian (List.rev x) (List.rev y)) in H0.
+    rewrite H0. easy.
+  + intros. rewrite H0 in H. now contradict H.
+Qed.
+
+Lemma bv_uleP_bv_ugeP : forall x y, bv_uleP x y -> (bv_ugeP y x).
+Proof.
+  intros x y. unfold bv_uleP, bv_ugeP.
+  rewrite (@N.eqb_sym (size y) (size x)).
+  case_eq (size x =? size y); intros.
+  - apply ule_listP_uge_listP. apply H0.
+  - apply H0.
+Qed.
+
+(*a >=u b -> b <=u a *)
+Lemma uge_list_big_endian_ule_list_big_endian : forall x y,
+  uge_list_big_endian x y = true -> ule_list_big_endian y x = true.
+Proof.
+  intros x. induction x.
+  + simpl. intros y. case y;easy. 
+  + intros y. case y.
+    - intros. case a; case x in *; simpl in H; now contradict H.
+    - intros b l. simpl. 
+      specialize (IHx l). case x in *.
+      * simpl. case l in *.
+        { case a; case b; simpl; easy. }
+        { case a; case b; simpl; easy. }
+      * rewrite !orb_true_iff, !andb_true_iff. intro. destruct H.
+        { destruct H. apply IHx in H0. apply Bool.eqb_prop in H.
+          rewrite H. rewrite H0. case b; case l; easy. }
+        { destruct H. apply negb_true_iff in H0. subst. case l; easy. }
+Qed. 
+
+Lemma uge_list_ule_list : forall x y, uge_list x y = true -> ule_list y x = true.
+Proof.
+  intros x y. unfold uge_list. intros. 
+  apply uge_list_big_endian_ule_list_big_endian in H.
+  unfold ule_list. apply H.
+Qed.
+
+Lemma bv_uge_bv_ule : forall x y, bv_uge x y = true -> bv_ule y x = true.
+Proof.
+  intros x y. unfold bv_uge.
+  case_eq (size x =? size y); intros.
+  - apply uge_list_ule_list in H0. unfold bv_ule. rewrite (@N.eqb_sym (size x) (size y)) in H. 
+    rewrite H. apply H0. 
+  - now contradict H0. 
+Qed.
+
+Lemma uge_listP_ule_listP : forall x y, uge_listP x y -> ule_listP y x.
+Proof.
+  unfold uge_listP.
+  intros. unfold uge_list in H.
+  case_eq (uge_list_big_endian (List.rev x) (List.rev y)).
+  + intros. unfold ule_listP. unfold ule_list. 
+    apply (@uge_list_big_endian_ule_list_big_endian (List.rev x) (List.rev y)) in H0.
+    rewrite H0. easy.
+  + intros. rewrite H0 in H. now contradict H.
+Qed.
+ 
+Lemma bv_ugeP_bv_uleP : forall x y, bv_ugeP x y -> (bv_uleP y x).
+Proof.
+  intros x y. unfold bv_ugeP, bv_uleP.
+  rewrite (@N.eqb_sym (size y) (size x)).
+  case_eq (size x =? size y); intros.
+  - apply uge_listP_ule_listP. apply H0.
+  - apply H0.
+Qed.
+
+
+(* x > y => x >= y *)
+Lemma ugt_list_big_endian_implies_uge : forall x y,
+  ugt_list_big_endian x y = true -> uge_list_big_endian x y = true.
+Proof.
+  intros x. induction x as [| h t].
+  + simpl. easy.
+  + intros y. case y.
+    - easy.
+    - intros b l. simpl. 
+      case t in *.
+      * simpl. case l in *.
+        { case h; case b; simpl; easy. }
+        { easy. }
+      * rewrite !orb_true_iff, !andb_true_iff. intro. destruct H.
+        { destruct H. specialize (@IHt l H0). rewrite IHt. apply Bool.eqb_prop in H.
+          rewrite H in *. left. split.
+          + apply eqb_reflx.
+          + easy. }
+        { destruct H. rewrite negb_true_iff in *. subst. 
+          right. easy. }
+Qed.
+
+
+(* forall b : BV, 1 >= b *)
+
+Lemma ones_bv_uge_size : forall (x : bitvector), 
+  bv_uge (mk_list_true (N.to_nat (size x))) x = true.
+Proof.
+  intros x. pose proof (@bv_ule_1_size x). now apply bv_ule_bv_uge in H.
+Qed.
+
+Lemma ones_bv_uge_length : forall (x : bitvector),
+  bv_uge (mk_list_true (length x)) x = true.
+Proof.
+  intros x. pose proof (@bv_ule_1_length x). now apply bv_ule_bv_uge in H.
+Qed.
+
+Lemma ones_bv_ugeP_size : forall (x : bitvector), bv_ugeP (mk_list_true (N.to_nat (size x))) x.
+Proof.
+  intros x. pose proof (@bv_uleP_1_size x). now apply bv_uleP_bv_ugeP in H.
+Qed.
+
+Lemma ones_bv_ugeP_length : forall (x : bitvector),
+  bv_ugeP (mk_list_true (length x)) x.
+Proof.
+  intros x. pose proof (@bv_uleP_1_length x). now apply bv_uleP_bv_ugeP in H.
+Qed.
+
+
+(* x >= x *)
+
+Lemma uge_list_big_endian_refl : forall (b : list bool), 
+  uge_list_big_endian b b = true.
+Proof.
+  induction b.
+  + easy.
+  + case a; simpl; rewrite IHb; case b; easy.
+Qed.
+
+Lemma bv_ugeP_refl : forall (b : bitvector), bv_ugeP b b.
+Proof.
+  intros b. pose proof (@bv_uleP_refl b). now apply bv_uleP_bv_ugeP in H.
+Qed.
+
+Lemma bv_uge_refl : forall (b : bitvector), bv_uge b b = true.
+Proof.
+  intros b. pose proof (@bv_ule_refl b). now apply bv_ule_bv_uge in H.
+Qed.
+
+
+Lemma uge_list_big_endian_cons_nil : forall (b : bool) (l : list bool),
+  uge_list_big_endian (b :: l) [] = false.
+Proof.
+  intros. destruct l; easy.
+Qed.
+
+
+(* x >= y <-> (x > y \/ x = y) *)
+
+Lemma ugt_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
+  ugt_list_big_endian b1 b2 = true -> 
+  ugt_list_big_endian (b :: b1) (b :: b2) = true.
+Proof.
+  intros. unfold ugt_list_big_endian. case b1 in *.
+  + case b2 in *; easy.
+  + case b2 in *.
+    - simpl in H. case b1 in *; easy.
+    - rewrite orb_true_iff, andb_true_iff. left. simpl. split.
+      * rewrite eqb_true_iff. easy.
+      * fold ugt_list_big_endian. apply H.
+Qed.
+
+Lemma uge_list_big_endian_implies_ugt_list_big_endian_or_eq : forall (x y : list bool), 
+  uge_list_big_endian x y = true -> ugt_list_big_endian x y = true \/ (x = y).
+Proof.
+  induction x.
+  + intros y H. induction y.
+    - now right.
+    - easy.
+  + intros y H. induction y.
+    - rewrite uge_list_big_endian_cons_nil in H. easy.
+    - case x in *.
+      * case y in *.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           destruct H.
+           *** rewrite eqb_true_iff in H. right. now rewrite H.
+           *** rewrite negb_true_iff in H. destruct H as (Ha, Ha0).
+               rewrite Ha, Ha0. now left.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           rewrite andb_true_iff, negb_true_iff in H. destruct H.
+           *** destruct H as (H, contr). easy.
+           *** destruct H as (Ha, Ha0). rewrite Ha, Ha0.
+               now left.
+      * case y in *.
+        ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
+           rewrite andb_true_iff, negb_true_iff in H. destruct H.
+           *** rewrite eqb_true_iff in H. destruct H. case x in *; easy.
+           *** destruct H as (Ha, Ha0). rewrite Ha, Ha0. now left.
+        ** specialize (@IHx (b0 :: y)). 
+           assert (Hunfolded : (a = true /\ a0 = false) \/ 
+                   (a = a0 /\ uge_list_big_endian (b :: x) (b0 :: y) = true)).
+           { unfold uge_list_big_endian in H. fold uge_list_big_endian in H.
+             rewrite orb_true_iff, andb_true_iff in H. destruct H.
+             + right. rewrite eqb_true_iff in H. destruct H. split.
+               * apply H.
+               * apply H0.
+             + rewrite andb_true_iff, negb_true_iff in H. left. apply H. }
+           destruct Hunfolded.
+           *** destruct H0 as (Ha, Ha0). rewrite Ha, Ha0. now left.
+           *** case a in *.
+               ++ case a0 in *.
+                  +++ destruct H0. specialize (@IHx H1). destruct IHx.
+                      -- left. apply (@ugt_list_big_endian_cons true). apply H2.
+                      -- right. now rewrite H2.
+                  +++ destruct H0. now contradict H0.
+               ++ case a0 in *.
+                  +++ left. easy.
+                  +++ destruct H0. specialize (@IHx H1). destruct IHx.
+                      -- left. apply (@ugt_list_big_endian_cons false). apply H2.
+                      -- right. now rewrite H2.
+Qed.
+
+Lemma ugt_list_big_endian_or_eq_implies_uge_list_big_endian : forall (x y : list bool), 
+  ugt_list_big_endian x y = true \/ (x = y) -> uge_list_big_endian x y = true.
+Proof.
+  induction x.
+  + intros y H. induction y.
+    - easy.
+    - destruct H; easy.
+  + intros y H. induction y.
+    - destruct H; easy.
+    - destruct H.
+      * apply ugt_list_big_endian_implies_uge. apply H.
+      * rewrite H. apply uge_list_big_endian_refl.
+Qed.
+
+Lemma bv_uge_eq : forall (x y : bitvector), bv_uge x y = true <->
+  (bv_ugt x y = true) \/ (x = y).
+Proof.
+  intros x y. 
+  assert (eq : x = y <-> (rev x) = (rev y)).
+  { split.
+    + apply rev_func.
+    + apply rev_inj.
+  }
+  split.
+  + rewrite eq. unfold bv_uge, bv_ugt. 
+    case_eq (size x =? size y); intros case. 
+    - unfold uge_list, ugt_list. intros H. induction (rev x).
+      * induction (rev y).
+        ++ now right.
+        ++ easy.
+      * induction (rev y).
+        ++ apply uge_list_big_endian_implies_ugt_list_big_endian_or_eq. apply H.
+        ++ unfold uge_list in H. unfold ugt_list. 
+           apply uge_list_big_endian_implies_ugt_list_big_endian_or_eq. apply H.
+    - intros. now contradict H.
+  + rewrite eq. unfold bv_uge, bv_ugt.
+    case_eq (size x =? size y); intros case. 
+    - unfold uge_list, ugt_list. intros H. induction (rev x).
+      * induction (rev y).
+        ++ easy.
+        ++ destruct H; easy.
+      * induction (rev y);
+        apply ugt_list_big_endian_or_eq_implies_uge_list_big_endian; apply H.
+    - intros. destruct H. 
+      * now contradict H.
+      * rewrite <- eq in H. rewrite H in case. rewrite N.eqb_refl in case.
+        easy.
+Qed.
+
+
+(* size x = size y -> x !< y -> x >= y *)
+Lemma uge_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
+  uge_list_big_endian b1 b2 = true -> 
+  uge_list_big_endian (b :: b1) (b :: b2) = true.
+Proof.
+  intros. unfold uge_list_big_endian. case b1 in *.
+  + case b2 in *.
+    - rewrite orb_true_iff, eqb_true_iff. now left.
+    - easy.
+  + case b2 in *.
+    - simpl in H. case b1 in *; easy.
+    - rewrite orb_true_iff, andb_true_iff. left. simpl. split.
+      * rewrite eqb_true_iff. easy.
+      * fold uge_list_big_endian. apply H.
+Qed.
+
+Lemma not_ult_list_big_endian_implies_uge_list_big_endian : forall (x y : list bool), 
+  size x = size y -> ult_list_big_endian x y = false -> uge_list_big_endian x y = true.
+Proof.
+  induction x.
+  + intros y. case y.
+    - easy.
+    - intros b l Hxy H. now contradict Hxy.
+  + intros y Hxy H. case y in *. 
+    - now contradict Hxy.
+    - case x in *.
+      * case y in *.
+        ++ simpl in H. rewrite andb_false_iff, negb_false_iff in H.
+           destruct H.
+           -- rewrite H. case b; easy.
+           -- rewrite H. case a; easy.
+        ++ assert (size [a] <> size (b :: b0 :: y)). 
+           { unfold size. rewrite <- N2Nat.inj_iff. 
+             rewrite Nat2N.id. rewrite Nat2N.id. easy. } 
+           easy.
+      * case y in *.
+        ++ assert (size (a :: b0 :: x) <> size [b]).
+           { unfold size. rewrite <- N2Nat.inj_iff. 
+             rewrite Nat2N.id. rewrite Nat2N.id. easy. } 
+           easy.
+        ++ unfold ult_list_big_endian in H.
+           fold ult_list_big_endian in H. 
+           rewrite orb_false_iff, andb_false_iff in H.
+           destruct H. rewrite andb_false_iff, negb_false_iff in H0.
+           destruct H0.
+           -- rewrite H0. destruct H.
+              ** rewrite H0 in H. rewrite eqb_false_iff in H.
+                 apply not_eq_sym in H. apply not_true_is_false in H.
+                 rewrite H. easy.
+              ** case b.
+                 +++ assert (size (b0 :: x) = size (b1 :: y)).
+                     { unfold size in *. rewrite <- N2Nat.inj_iff in Hxy. 
+                       rewrite Nat2N.id in Hxy. rewrite Nat2N.id in Hxy. 
+                       simpl in Hxy. apply Nat.succ_inj in Hxy. 
+                       rewrite <- N2Nat.inj_iff. rewrite Nat2N.id. 
+                       rewrite Nat2N.id. simpl. rewrite Hxy. easy. }
+                      specialize (@IHx (b1 :: y) H1 H). 
+                      apply uge_list_big_endian_cons. apply IHx.
+                 +++ easy.
+           -- rewrite H0. destruct H.
+              ** rewrite eqb_false_iff, H0 in H. 
+                 apply not_false_is_true in H. rewrite H. easy.
+              ** case a.
+                 +++ easy.
+                 +++ assert (size (b0 :: x) = size (b1 :: y)).
+                     { unfold size in *. rewrite <- N2Nat.inj_iff in Hxy. 
+                       rewrite Nat2N.id in Hxy. rewrite Nat2N.id in Hxy. 
+                       simpl in Hxy. apply Nat.succ_inj in Hxy. 
+                       rewrite <- N2Nat.inj_iff. rewrite Nat2N.id. 
+                       rewrite Nat2N.id. simpl. rewrite Hxy. easy. }
+                     specialize (@IHx (b1 :: y) H1 H).
+                     apply uge_list_big_endian_cons. apply IHx.
+Qed.
+
+Lemma not_bv_ult_implies_bv_uge : forall (x y : bitvector), 
+  size x = size y -> (bv_ult x y = false) -> bv_uge x y = true.
+Proof.
+  intros x y Hsize H. unfold bv_ult, bv_uge in *.
+  case_eq (size x =? size y); intros Hxy.
+  - rewrite Hxy in H. unfold size in Hxy. 
+    rewrite <- rev_length in Hxy.
+    rewrite <- (@rev_length bool y) in Hxy.
+    unfold ult_list, uge_list in *. induction (rev x).
+    * case (rev y) in *.
+      ++ easy.
+      ++ simpl in *. apply Hxy. 
+    * case (rev y) in *.
+      ++ simpl in *. case l in *; apply Hxy.
+      ++ apply Neqb_ok in Hxy. 
+         apply not_ult_list_big_endian_implies_uge_list_big_endian. 
+         apply Hxy. apply H.
+  - apply N.eqb_neq in Hxy. easy. 
+Qed.
+
+
+(* b1 = b2 -> !(b1 < b2) *)
+
+Lemma ult_list_big_endian_not_refl : forall (b : list bool),
+ ult_list_big_endian b b = false.
+Proof.
+  intros. induction b.
+  + easy.
+  + simpl. case b in *.
+    - rewrite andb_comm. apply andb_negb_r.
+    - rewrite orb_false_iff, andb_false_iff. split.
+      * now right.
+      * rewrite andb_comm. apply andb_negb_r.
+Qed.
+
+Lemma eq_not_ult_list_big_endian : forall (b1 b2 : list bool),
+  b1 = b2 -> ult_list_big_endian b1 b2 = false.
+Proof.
+  induction b1.
+  + intros. case b2; easy.
+  + intros b2 H. induction b2.
+    - easy.
+    - rewrite H. apply ult_list_big_endian_not_refl. 
+Qed.
+
+Lemma eq_not_bv_ult : forall (b1 b2 : bitvector),
+  b1 = b2 -> bv_ult b1 b2 = false.
+Proof.
+  intros b1 b2 H. unfold bv_ult.
+  case_eq (size b1 =? size b2); intros size.
+  + unfold ult_list. apply rev_func in H.
+    apply eq_not_ult_list_big_endian. apply H.
+  + easy.
+Qed.
+
+
+(* x >= y -> x !< y *)
+
+Lemma bv_uge_implies_not_bv_ult : forall (x y : bitvector), 
+  bv_uge x y = true -> (bv_ult x y = false).
+Proof.
+  intros x y. intros Hule. rewrite bv_uge_eq in Hule. 
+  destruct Hule.
+  - apply bv_ugt_not_bv_ult. apply H.
+  - apply eq_not_bv_ult. apply H.
+Qed.
+
+
+(* x != [] ->
+     x >= ~x <-> sign(x) = 0 *)
+
+Lemma ult_big_endian_implies_not_uge_big_endian : forall (x y : bitvector),
+  ult_list_big_endian x y = true -> uge_list_big_endian x y = false.
+Proof.
+  induction x.
+  + intros y ult.
+    case y in *.
+    - easy.
+    - easy.
+  + intros y ult. case y in *.
+    - case x in *; now contradict ult.
+    - case a in *.
+      * case b in *.
+        ++ assert (ult_list_big_endian x y = true).
+           { simpl in ult. case x in *.
+             + case y in ult.
+               - easy.
+               - rewrite orb_true_iff in ult. destruct ult; now simpl in H.
+             + case y in *.
+               - rewrite orb_true_iff in ult. destruct ult.
+                 * simpl in H; case x in H; easy.
+                 * easy.
+               - rewrite orb_true_iff in ult. destruct ult; easy. }
+            specialize (@IHx y H). simpl. case x in *.
+            -- case y in *.
+               ** now contradict H.
+               ** now contradict H.   
+            -- case y in *.
+               ** case x in *; now contradict H.
+               ** rewrite orb_false_iff. split; easy.
+        ++ case x in *; case y in *; now contradict ult.
+      * case b in *.
+        ++ case x in *; case y in *; easy.
+        ++ assert (ult_list_big_endian x y = true).
+           { simpl in ult. case x in *.
+             + case y in ult.
+               - easy.
+               - rewrite orb_true_iff in ult. destruct ult; now simpl in H.
+             + case y in *.
+               - rewrite orb_true_iff in ult. destruct ult.
+                 * simpl in H; case x in H; easy.
+                 * easy.
+               - rewrite orb_true_iff in ult. destruct ult; easy. }
+            specialize (@IHx y H). simpl. case x in *.
+            -- case y in *.
+               ** now contradict H.
+               ** now contradict H.   
+            -- case y in *.
+               ** case x in *; now contradict H.
+               ** rewrite orb_false_iff. split; easy.
+Qed.
+
+Lemma ult_implies_not_uge : forall (x y : bitvector), bv_ult x y = true ->
+  bv_uge x y = false.
+Proof.
+  intros x y ult.
+  unfold bv_ult, bv_uge in *. case_eq (size x =? size y); intros H.
+  + rewrite H in ult. unfold ult_list, uge_list in *.
+    unfold size in H. rewrite <- rev_length in H. 
+    rewrite <- (@rev_length bool y) in H. apply Neqb_ok in H. 
+    rewrite <- N2Nat.inj_iff in H. rewrite Nat2N.id in H.
+    rewrite Nat2N.id in H.
+    apply ult_big_endian_implies_not_uge_big_endian. apply ult.
+  + easy.
+Qed.
+
+Lemma bv_not_app : forall (x : bitvector) (b : bool),
+  bv_not (x ++ [b]) = bv_not x ++ bv_not [b].
+Proof.
+  intros x b. induction x.
+  + easy.
+  + simpl. rewrite IHx. easy. 
+Qed.
+
+Lemma rev_bvnot : forall x : bitvector, rev (bv_not x) = bv_not (rev x).
+Proof.
+  intros x. induction x.
+  + easy.
+  + simpl. rewrite bv_not_app. rewrite IHx. easy.
+Qed. 
+
+Lemma hd_rev: forall a,
+  hd false (rev a) = last a false.
+Proof. intro a.
+        induction a using rev_ind; intros.
+        - now cbn.
+        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
+            @RAWBITVECTOR_LIST.last_app) 
+           (@Coq.Lists.List.hd).
+Qed.
+
+Lemma uge_bvnot_refl_implies_sign_neg : forall (x : bitvector),
+  x <> [] -> bv_uge x (bv_not x) = true -> last x false = true.
+Proof.
+  intros x notnil uge. unfold bv_uge in uge.
+  assert (Hsize : size x = size (bv_not x)).
+  { rewrite (@bv_not_size (size x) x). easy. easy. }
+  rewrite <- Hsize in uge. rewrite N.eqb_refl in uge.
+  unfold uge_list in uge. rewrite rev_bvnot in uge.
+  apply rev_neg_func in notnil. simpl in notnil. 
+  rewrite <- hd_rev. induction (rev x).
+  + now contradict notnil.
+  + case a in *.
+    * easy. 
+    * assert (bv_not (false :: l) = true :: bv_not l) by easy.
+      rewrite H in uge.
+      assert (contr : forall (b1 b2 : bitvector), uge_list_big_endian (false :: b1) (true :: b2) = false).
+      { intros b1 b2. apply ult_big_endian_implies_not_uge_big_endian. case b1; case b2; easy. }
+      specialize (@contr l (bv_not l)). rewrite contr in uge. easy.
+Qed.
+
+Lemma sign_neg_implies_uge_bvnot_refl : forall (x : bitvector),
+  x <> [] -> last x false = true -> bv_uge x (bv_not x) = true.
+Proof.
+  intros x notnil sign. induction x.
+  + now contradict notnil.
+  + unfold bv_uge. rewrite (@bv_not_size (size (a :: x)) (a :: x) eq_refl).
+    rewrite N.eqb_refl. unfold uge_list. unfold bv_not, bits.
+    rewrite <- map_rev. rewrite <- hd_rev in sign. 
+    case (rev (a :: x)) in *.
+    - easy.
+    - simpl in sign. rewrite sign. simpl. case l; easy.
+Qed.
+
+Lemma uge_bvnot_refl_eq_sign_neg : forall (x : bitvector),
+  x <> [] -> bv_uge x (bv_not x) = true <-> last x false = true.
+Proof. 
+  split.
+  + now apply uge_bvnot_refl_implies_sign_neg.
+  + now apply sign_neg_implies_uge_bvnot_refl.
+Qed.
+
+
+(* Transitivity : x >= y => y >= z => x >= z *)
+Lemma uge_list_big_endian_trans : forall x y z,
+    uge_list_big_endian x y = true ->
+    uge_list_big_endian y z = true ->
+    uge_list_big_endian x z = true.
+Proof.
+  intros. apply uge_list_big_endian_ule_list_big_endian in H.
+  apply uge_list_big_endian_ule_list_big_endian in H0.
+  apply ule_list_big_endian_uge_list_big_endian.
+  apply (@ule_list_big_endian_trans z y x H0 H).
+Qed.
+
+(* bool output *)
+Lemma uge_list_trans : forall x y z,
+  uge_list x y = true -> uge_list y z = true -> uge_list x z = true.
+Proof.
+  unfold uge_list. intros x y z. apply uge_list_big_endian_trans. 
+Qed.
+
+Lemma bv_uge_list_trans : forall (b1 b2 b3 : bitvector), 
+  bv_uge b1 b2 = true -> bv_uge b2 b3 = true -> bv_uge b1 b3 = true.
+Proof.
+  intros. apply bv_uge_bv_ule in H. apply bv_uge_bv_ule in H0. 
+  apply bv_ule_bv_uge. apply (@bv_ule_list_trans b3 b2 b1 H0 H).
+Qed.
+
+(* Prop output *)
+Lemma uge_listP_trans : forall (b1 b2 b3 : bitvector),
+  uge_listP b1 b2 -> uge_listP b2 b3 -> uge_listP b1 b3.
+Proof.
+  intros. apply uge_listP_ule_listP in H. apply uge_listP_ule_listP in H0.
+  apply ule_listP_uge_listP. apply (@ule_listP_trans b3 b2 b1 H0 H).
+Qed.
+
+Lemma bv_ugeP_trans : forall (b1 b2 b3 : bitvector),
+  bv_ugeP b1 b2 -> bv_ugeP b2 b3 -> bv_ugeP b1 b3.
+Proof.
+  intros. apply bv_ugeP_bv_uleP in H. apply bv_ugeP_bv_uleP in H0.
+  apply bv_uleP_bv_ugeP. apply (@bv_uleP_trans b3 b2 b1 H0 H).
+Qed.
+
+
 (* Shift Right (Logical) *)
 
 Definition shr_one_bit (a: list bool) : list bool :=
@@ -6402,16 +7468,6 @@ Proof. intro a.
             * cbn in *. subst. now cbn.
 Qed.
 
-
-Lemma hd_rev: forall a,
-  hd false (rev a) = last a false.
-Proof. intro a.
-        induction a using rev_ind; intros.
-        - now cbn.
-        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
-            @RAWBITVECTOR_LIST.last_app) 
-           (@Coq.Lists.List.hd).
-Qed.
 
 Lemma bv_slt_tf: forall a b,
   size a = size b ->
