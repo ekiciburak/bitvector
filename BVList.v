@@ -80,83 +80,84 @@ Module Import NBoolEqualityFacts := BoolEqualityFacts(N).
 
 Module Type BITVECTOR.
 
-  Parameter bitvector : N -> Type.
-  Parameter bits      : forall n, bitvector n -> list bool.
-  Parameter of_bits   : forall (l:list bool), bitvector (N.of_nat (List.length l)).
-  Parameter bitOf     : forall n, nat -> bitvector n -> bool.
+  Parameter bitvector  : N -> Type.
+  Parameter bits       : forall n, bitvector n -> list bool.
+  Parameter of_bits    : forall (l:list bool), bitvector (N.of_nat (List.length l)).
+  Parameter bitOf      : forall n, nat -> bitvector n -> bool.
 
   (* Constants *)
-  Parameter zeros     : forall n, bitvector n.
-  Parameter one       : forall n, bitvector n.
+  Parameter zeros      : forall n, bitvector n.
+  Parameter signed_min : forall n, bitvector n.
+  Parameter signed_max : forall n, bitvector n.
 
   (* Equality *)
-  Parameter bv_eq     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_eq      : forall n, bitvector n -> bitvector n -> bool.
 
   (* Binary Operations *)
-  Parameter bv_concat : forall n m, bitvector n -> bitvector m -> bitvector (n + m).
-  Parameter bv_and    : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_or     : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_xor    : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_add    : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_subt   : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_subt'  : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_mult   : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_ult    : forall n, bitvector n -> bitvector n -> bool.
-  Parameter bv_ultP   : forall n, bitvector n -> bitvector n -> Prop.
-  Parameter bv_ugt    : forall n, bitvector n -> bitvector n -> bool.
-  Parameter bv_ugtP   : forall n, bitvector n -> bitvector n -> Prop.
-  Parameter bv_slt    : forall n, bitvector n -> bitvector n -> bool.
-  Parameter bv_sltP   : forall n, bitvector n -> bitvector n -> Prop.
-  Parameter bv_ule    : forall n, bitvector n -> bitvector n -> bool.
-  Parameter bv_uleP   : forall n, bitvector n -> bitvector n -> Prop.
-  Parameter bv_uge    : forall n, bitvector n -> bitvector n -> bool.
-  Parameter bv_ugeP   : forall n, bitvector n -> bitvector n -> Prop.
-  Parameter bv_shl    : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_shr    : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_ashr   : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_shl_a  : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_shr_a  : forall n, bitvector n -> bitvector n -> bitvector n.
-  Parameter bv_ashr_a : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_concat  : forall n m, bitvector n -> bitvector m -> bitvector (n + m).
+  Parameter bv_and     : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_or      : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_xor     : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_add     : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_subt    : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_subt'   : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_mult    : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_ult     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_ultP    : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_ugt     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_ugtP    : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_slt     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_sltP    : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_ule     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_uleP    : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_uge     : forall n, bitvector n -> bitvector n -> bool.
+  Parameter bv_ugeP    : forall n, bitvector n -> bitvector n -> Prop.
+  Parameter bv_shl     : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_shr     : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_ashr    : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_shl_a   : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_shr_a   : forall n, bitvector n -> bitvector n -> bitvector n.
+  Parameter bv_ashr_a  : forall n, bitvector n -> bitvector n -> bitvector n.
 
   (* Unary Operations *)
-  Parameter bv_not    : forall n, bitvector n -> bitvector n.
-  Parameter bv_neg    : forall n, bitvector n -> bitvector n.
-  Parameter bv_extr   : forall (i n0 n1 : N), bitvector n1 -> bitvector n0.
-  Parameter nat2bv    : forall (n: nat) (s: N), bitvector s.
+  Parameter bv_not     : forall n, bitvector n -> bitvector n.
+  Parameter bv_neg     : forall n, bitvector n -> bitvector n.
+  Parameter bv_extr    : forall (i n0 n1 : N), bitvector n1 -> bitvector n0.
+  Parameter nat2bv     : forall (n: nat) (s: N), bitvector s.
 
   (* Parameter bv_extr   : forall (n i j : N) {H0: n >= j} {H1: j >= i}, bitvector n -> bitvector (j - i). *)
 
-  Parameter bv_zextn  : forall (n i: N), bitvector n -> bitvector (i + n).
-  Parameter bv_sextn  : forall (n i: N), bitvector n -> bitvector (i + n).
+  Parameter bv_zextn   : forall (n i: N), bitvector n -> bitvector (i + n).
+  Parameter bv_sextn   : forall (n i: N), bitvector n -> bitvector (i + n).
   (* Parameter bv_extr   : forall n i j : N, bitvector n -> n >= j -> j >= i -> bitvector (j - i). *)
 
   (* Specification *)
-  Axiom bits_size     : forall n (bv:bitvector n), List.length (bits bv) = N.to_nat n.
-  Axiom bv_eq_reflect : forall n (a b:bitvector n), bv_eq a b = true <-> a = b.
-  Axiom bv_eq_refl    : forall n (a:bitvector n), bv_eq a a = true.
+  Axiom bits_size      : forall n (bv:bitvector n), List.length (bits bv) = N.to_nat n.
+  Axiom bv_eq_reflect  : forall n (a b:bitvector n), bv_eq a b = true <-> a = b.
+  Axiom bv_eq_refl     : forall n (a:bitvector n), bv_eq a a = true.
 
-  Axiom bv_ult_B2P    : forall n (a b:bitvector n), bv_ult a b = true <-> bv_ultP a b.
-  Axiom bv_slt_B2P    : forall n (a b:bitvector n), bv_slt a b = true <-> bv_sltP a b.
-  Axiom bv_ult_not_eq : forall n (a b:bitvector n), bv_ult a b = true -> a <> b.
-  Axiom bv_slt_not_eq : forall n (a b:bitvector n), bv_slt a b = true -> a <> b.
-  Axiom bv_ult_not_eqP: forall n (a b:bitvector n), bv_ultP a b -> a <> b.
-  Axiom bv_slt_not_eqP: forall n (a b:bitvector n), bv_sltP a b -> a <> b.
-  Axiom bv_ugt_B2P    : forall n (a b:bitvector n), bv_ugt a b = true <-> bv_ugtP a b.
-  Axiom bv_ugt_not_eq : forall n (a b:bitvector n), bv_ugt a b = true -> a <> b.
-  Axiom bv_ugt_not_eqP: forall n (a b:bitvector n), bv_ugtP a b -> a <> b.
-  Axiom bv_ule_B2P    : forall n (a b:bitvector n), bv_ule a b = true <-> bv_uleP a b.
-  Axiom bv_uge_B2P    : forall n (a b:bitvector n), bv_uge a b = true <-> bv_ugeP a b.
+  Axiom bv_ult_B2P     : forall n (a b:bitvector n), bv_ult a b = true <-> bv_ultP a b.
+  Axiom bv_slt_B2P     : forall n (a b:bitvector n), bv_slt a b = true <-> bv_sltP a b.
+  Axiom bv_ult_not_eq  : forall n (a b:bitvector n), bv_ult a b = true -> a <> b.
+  Axiom bv_slt_not_eq  : forall n (a b:bitvector n), bv_slt a b = true -> a <> b.
+  Axiom bv_ult_not_eqP : forall n (a b:bitvector n), bv_ultP a b -> a <> b.
+  Axiom bv_slt_not_eqP : forall n (a b:bitvector n), bv_sltP a b -> a <> b.
+  Axiom bv_ugt_B2P     : forall n (a b:bitvector n), bv_ugt a b = true <-> bv_ugtP a b.
+  Axiom bv_ugt_not_eq  : forall n (a b:bitvector n), bv_ugt a b = true -> a <> b.
+  Axiom bv_ugt_not_eqP : forall n (a b:bitvector n), bv_ugtP a b -> a <> b.
+  Axiom bv_ule_B2P     : forall n (a b:bitvector n), bv_ule a b = true <-> bv_uleP a b.
+  Axiom bv_uge_B2P     : forall n (a b:bitvector n), bv_uge a b = true <-> bv_ugeP a b.
 
-  Axiom bv_and_comm   : forall n (a b:bitvector n), bv_eq (bv_and a b) (bv_and b a) = true.
-  Axiom bv_or_comm    : forall n (a b:bitvector n), bv_eq (bv_or a b) (bv_or b a) = true.
-  Axiom bv_add_comm   : forall n (a b:bitvector n), bv_eq (bv_add a b) (bv_add b a) = true. 
-  Axiom bv_and_assoc  : forall n (a b c: bitvector n), bv_eq (bv_and a (bv_and b c)) (bv_and (bv_and a b) c) = true.
-  Axiom bv_or_assoc   : forall n (a b c: bitvector n), bv_eq (bv_or a (bv_or b c)) (bv_or (bv_or a b) c) = true.
-  Axiom bv_xor_assoc  : forall n (a b c: bitvector n), bv_eq (bv_xor a (bv_xor b c)) (bv_xor (bv_xor a b) c) = true.
-  Axiom bv_add_assoc  : forall n (a b c: bitvector n), bv_eq (bv_add a (bv_add b c)) (bv_add (bv_add a b) c) = true.
-  Axiom bv_not_involutive: forall n (a: bitvector n), bv_eq (bv_not (bv_not a)) a = true.
+  Axiom bv_and_comm    : forall n (a b:bitvector n), bv_eq (bv_and a b) (bv_and b a) = true.
+  Axiom bv_or_comm     : forall n (a b:bitvector n), bv_eq (bv_or a b) (bv_or b a) = true.
+  Axiom bv_add_comm    : forall n (a b:bitvector n), bv_eq (bv_add a b) (bv_add b a) = true. 
+  Axiom bv_and_assoc   : forall n (a b c: bitvector n), bv_eq (bv_and a (bv_and b c)) (bv_and (bv_and a b) c) = true.
+  Axiom bv_or_assoc    : forall n (a b c: bitvector n), bv_eq (bv_or a (bv_or b c)) (bv_or (bv_or a b) c) = true.
+  Axiom bv_xor_assoc   : forall n (a b c: bitvector n), bv_eq (bv_xor a (bv_xor b c)) (bv_xor (bv_xor a b) c) = true.
+  Axiom bv_add_assoc   : forall n (a b c: bitvector n), bv_eq (bv_add a (bv_add b c)) (bv_add (bv_add a b) c) = true.
+  Axiom bv_not_involutive : forall n (a: bitvector n), bv_eq (bv_not (bv_not a)) a = true.
 
-  Parameter _of_bits  : forall (l: list bool) (s : N), bitvector s.
+  Parameter _of_bits   : forall (l: list bool) (s : N), bitvector s.
 
   (** for invertibility conditions *)
   Parameter bv2nat_a: forall n, bitvector n -> nat.
@@ -176,7 +177,8 @@ Parameter bitOf      : nat -> bitvector -> bool.
 
 (* Constants *)
 Parameter zeros      : N -> bitvector.
-Parameter one        : N -> bitvector.
+Parameter signed_min : N -> bitvector.
+Parameter signed_max : N -> bitvector.
 
 (* Equality *)
 Parameter bv_eq      : bitvector -> bitvector -> bool.
@@ -225,7 +227,8 @@ Axiom bits_size      : forall bv, List.length (bits bv) = N.to_nat (size bv).
 Axiom of_bits_size   : forall l, N.to_nat (size (of_bits l)) = List.length l.
 Axiom _of_bits_size  : forall l s,(size (_of_bits l s)) = s.
 Axiom zeros_size     : forall n, size (zeros n) = n.
-Axiom one_size       : forall n, size (one n) = n.
+Axiom signed_min_size : forall n, size (signed_min n) = n.
+Axiom signed_max_size : forall n, size (signed_max n) = n.
 Axiom bv_concat_size : forall n m a b, size a = n -> size b = m -> size (bv_concat a b) = n + m.
 Axiom bv_and_size    : forall n a b, size a = n -> size b = n -> size (bv_and a b) = n.
 Axiom bv_or_size     : forall n a b, size a = n -> size b = n -> size (bv_or a b) = n.
@@ -320,8 +323,11 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
   Definition zeros (n:N) : bitvector n :=
     @MkBitvector _ (M.zeros n) (M.zeros_size n).
 
-  Definition one (n:N) : bitvector n :=
-    @MkBitvector _ (M.one n) (M.one_size n).
+  Definition signed_min (n:N) : bitvector n :=
+    @MkBitvector _ (M.signed_min n) (M.signed_min_size n).
+
+  Definition signed_max (n:N) : bitvector n :=
+    @MkBitvector _ (M.signed_max n) (M.signed_max_size n).
 
   Definition nat2bv (n: nat) (s: N): bitvector s.
   Proof. specialize (@MkBitvector s (M.nat2bv n s)); intros. apply X.
@@ -723,35 +729,57 @@ Proof. intro n.
        - simpl. apply f_equal. exact IHn.
 Qed.
 
-Fixpoint mk_list_one (t: nat) : list bool := 
+
+Definition smin_big_endian (t : nat) : list bool :=
   match t with
     | O => []
-    | S O => [true]
-    | S t' => false :: (mk_list_one t')
+    | S t' => true :: mk_list_false t'
   end.
 
-Definition one (n : N) : bitvector := rev (mk_list_one (N.to_nat n)).
+Definition signed_min (n : N) : bitvector := 
+    rev (smin_big_endian (N.to_nat n)).
 
-Lemma length_mk_list_one: forall n, length (rev (mk_list_one n)) = n.
-Proof. intro n.
-  induction n as [| n' IHn].
-  - reflexivity.
-  - assert (H: forall n, length (rev (mk_list_one (S n))) = S (length (rev(mk_list_one n)))).
-    { intros n. rewrite -> rev_length. rewrite -> rev_length. induction n as [ | n'' IHn'].
-      + reflexivity.
-      + reflexivity. }
-    rewrite -> H. rewrite -> IHn. reflexivity.
+Lemma length_smin_big_endian : forall n, 
+  length (rev (smin_big_endian n)) = n.
+Proof. 
+  intro n. induction n as [| n' IHn].
+  + reflexivity.
+  + rewrite rev_length in *. simpl.
+    rewrite length_mk_list_false. easy.
 Qed.
 
-Lemma one_size (n : N) : size (one n) = n.
-Proof. unfold size. unfold one. rewrite length_mk_list_one.
-  rewrite N2Nat.id. reflexivity. Qed.
+Lemma signed_min_size (n : N) : size (signed_min n) = n.
+Proof. unfold size. unfold signed_min. 
+  rewrite length_smin_big_endian. rewrite N2Nat.id. easy. Qed.
+
+
+Definition smax_big_endian (t : nat) : list bool :=
+  match t with
+    | O => []
+    | S t' => false :: mk_list_true t'
+  end.
+
+Definition signed_max (n : N) : bitvector := 
+    rev (smax_big_endian (N.to_nat n)).
+
+Lemma length_smax_big_endian : forall n, 
+  length (rev (smax_big_endian n)) = n.
+Proof. 
+  intro n. induction n as [| n' IHn].
+  + reflexivity.
+  + rewrite rev_length in *. simpl.
+    rewrite length_mk_list_true. easy.
+Qed.
+
+Lemma signed_max_size (n : N) : size (signed_max n) = n.
+Proof. unfold size. unfold signed_max. 
+  rewrite length_smax_big_endian. rewrite N2Nat.id. easy. Qed.
 
 
 Definition bv_concat (a b: bitvector) : bitvector := b ++ a.
 
-Proof.
 Lemma bv_concat_size n m a b : size a = n -> size b = m -> size (bv_concat a b) = (n + m)%N.
+Proof.
   unfold bv_concat, size. intros H0 H1.
   rewrite app_length, Nat2N.inj_add, H0, H1; now rewrite N.add_comm.
 Qed.

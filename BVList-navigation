@@ -30,7 +30,7 @@ All the implementation is done here. *)
 - Section Housekeeping
   + size definition and lemmas
   + zeros definitions and lemmas
-  + one definitions and lemmas
+  + signed_min, signed_max definitions and lemmas
   + bv_concat definitions and lemmas
 
 - Equality (* equality *)
