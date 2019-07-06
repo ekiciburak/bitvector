@@ -1240,7 +1240,14 @@ Proof. split.
 Qed.
 
 (* (s <u min(s) \/ t >= s) <=> s >>a x <= t *)
-
+Theorem bvashr_ule2 : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    ((bv_ult s (signed_min n) = true) \/ (bv_uge t s = true))
+    (exists (x : bitvector), (size x) = n /\ 
+      bv_ule (bv_ashr s x) t = true).
+Proof.
+Admitted.
+ 
 (* s >=u ~s \/ s >= t <=> s >>a x >= t *)  
 Theorem bvashr_uge2 : forall (n : N), forall (s t : bitvector),
   (size s) = n -> (size t) = n -> iff
