@@ -1288,7 +1288,10 @@ Proof.
            -- assert (hd false (b0 :: l) = false -> b0 = false) by easy.
               apply H2 in H0. rewrite H0. simpl. case l; 
               case (mk_list_false n0); easy.
-    - apply bv_ule_bv_uge in H. right.
+    - apply bv_ule_bv_uge in H. right. rewrite <- Hs in Hx. 
+      pose proof (@negative_bv_implies_bv_ashr_uge s x Hx H0). (*admitted.*)
+      rewrite bv_ashr_eq in H. 
+      apply (@bv_uge_list_trans t (bv_ashr_a s x) s H H1).
 Admitted.
  
 (* s >=u ~s \/ s >= t <=> s >>a x >= t *)  
@@ -1315,7 +1318,8 @@ Proof.
       * apply zeros_size.
       * rewrite <- Hs. rewrite bvashr_zero. apply H.
   + intros (x, (Hx, H)). destruct (@sign_0_or_1 s).
-    - pose proof (@positive_bv_implies_uge_bv_ashr s x) as uge.
+    - pose proof (@positive_bv_implies_uge_bv_ashr s x) as uge (*admitted*).
+      (* sign(s) = 0 -> s >= (s >>a x) *) 
       rewrite Hs, Hx in uge. specialize (@uge eq_refl H0).
       right. apply (@bv_uge_list_trans s (bv_ashr_a s x) t uge H).
     - left. case s in *.
