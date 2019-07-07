@@ -1246,6 +1246,21 @@ Theorem bvashr_ule2 : forall (n : N), forall (s t : bitvector),
     (exists (x : bitvector), (size x) = n /\ 
       bv_ule (bv_ashr s x) t = true).
 Proof.
+  intros n s t Hs Ht. split.
+  + intros H. destruct H.
+    - pose proof (@ult_b_signed_min_implies_positive_sign s n Hs H)
+      as signb. exists (nat2bv (length s) (size s)). split.
+      * rewrite nat2bv_size. apply Hs.
+      * rewrite bv_ashr_eq. unfold size in Hs, Ht. 
+        apply N2Nat.inj_iff in Hs. apply N2Nat.inj_iff in Ht.
+        rewrite Nat2N.id in Hs, Ht.
+        case s in *.
+        ++ rewrite bvashr_nil. simpl in Hs. rewrite <- Hs in Ht. 
+           apply length_zero_iff_nil in Ht. rewrite Ht. 
+           apply bv_ule_refl.
+        ++ rewrite (@ashr_size_sign0 (b :: s) signb). unfold zeros.
+           unfold size. rewrite Nat2N.id. rewrite Hs. rewrite <- Ht. 
+           apply bv_ule_0.
 Admitted.
  
 (* s >=u ~s \/ s >= t <=> s >>a x >= t *)  

@@ -4939,6 +4939,68 @@ Proof.
   + easy.
 Qed.
 
+
+(* s <u (signed_min (size s)) -> sign(s) = 0 *)
+
+Lemma last_app: forall {A: Type} (a: list A) x d, List.last (a ++ [x]) d = x.
+Proof. intros A a.
+        induction a; intros.
+        - now cbn.
+        - cbn. case_eq (a0 ++ [x]); intros.
+          + contradict H.
+            destruct a0; easy.
+          + now rewrite <- H.
+Qed.
+
+Lemma hd_rev: forall a,
+  hd false (rev a) = last a false.
+Proof. intro a.
+        induction a using rev_ind; intros.
+        - now cbn.
+        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
+            @RAWBITVECTOR_LIST.last_app) 
+           (@Coq.Lists.List.hd).
+Qed.
+
+Lemma cons_ult_list_big_endian : forall (b : bool) (l1 l2 : list bool), 
+  ult_list_big_endian (b :: l1) (b :: l2) = true ->
+  ult_list_big_endian l1 l2 = true.
+Proof.
+  intros b l1 l2 ult. case b in *.
+  + simpl in ult. case l1 in *.
+    - case l2 in *; easy.
+    - case l2 in *.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+  + simpl in ult. case l1 in *.
+    - case l2 in *; easy.
+    - case l2 in *.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+Qed.
+
+Lemma ult_b_signed_min_implies_positive_sign : forall (b : bitvector)
+  (n : N), size b = n -> bv_ult b (signed_min n) = true ->
+  last b false = false.
+Proof.
+  intros b n Hb ult.
+  unfold bv_ult in ult. rewrite signed_min_size in ult.
+  rewrite Hb in ult. rewrite eqb_refl in ult. unfold ult_list in ult.
+  unfold signed_min in ult. rewrite rev_involutive in ult.
+  unfold size in Hb. apply N2Nat.inj_iff in Hb.
+  rewrite Nat2N.id in Hb. rewrite <- rev_length in Hb.
+  rewrite <- hd_rev. case (rev b) in *.
+  + easy.
+  + case (N.to_nat n) in *.
+    - now contradict Hb.
+    - assert (smin_big_endian (S n0) = true :: (mk_list_false n0)) 
+      by easy. rewrite H in ult. case b0 in *. 
+      * apply cons_ult_list_big_endian in ult. simpl in Hb. 
+        apply Nat.succ_inj in Hb. rewrite <- Hb in ult.
+        now rewrite not_ult_list_big_endian_x_0 in ult.
+      * easy.
+Qed.
+
 (* ult-thrms-end *)
 
 
@@ -6386,26 +6448,6 @@ Proof.
   + easy.
   + simpl. rewrite bv_not_app. rewrite IHx. easy.
 Qed. 
-
-Lemma last_app: forall {A: Type} (a: list A) x d, List.last (a ++ [x]) d = x.
-Proof. intros A a.
-        induction a; intros.
-        - now cbn.
-        - cbn. case_eq (a0 ++ [x]); intros.
-          + contradict H.
-            destruct a0; easy.
-          + now rewrite <- H.
-Qed.
-
-Lemma hd_rev: forall a,
-  hd false (rev a) = last a false.
-Proof. intro a.
-        induction a using rev_ind; intros.
-        - now cbn.
-        - Reconstr.rblast (@Coq.Lists.List.rev_unit, 
-            @RAWBITVECTOR_LIST.last_app) 
-           (@Coq.Lists.List.hd).
-Qed.
 
 Lemma uge_bvnot_refl_implies_sign_neg : forall (x : bitvector),
   x <> [] -> bv_uge x (bv_not x) = true -> last x false = true.
@@ -7948,6 +7990,7 @@ Proof.
 Qed.
 
 
+(* sign b = 1 -> b >>a (size b) = 11...1 *)
 Lemma ashr_size_sign1 : forall (b : bitvector), 
   last b false = true -> 
   bv_ashr_a b (nat2bv (length b) (size b)) = bv_not (zeros (size b)).
@@ -7957,6 +8000,19 @@ Proof.
   rewrite list2N_N2List_eq. unfold ashr_n_bits_a. unfold size, zeros.
   rewrite Nat2N.id. rewrite Nat.ltb_irrefl. rewrite sign. 
   simpl. rewrite bv_not_false_true. easy.
+Qed.
+
+
+(* sign b = 0 -> b >>a (size b) = 00...0 *)
+Lemma ashr_size_sign0 : forall (b : bitvector), 
+  last b false = false -> 
+  bv_ashr_a b (nat2bv (length b) (size b)) = zeros (size b).
+Proof.
+  intros b sign. unfold bv_ashr_a. rewrite (@nat2bv_size (length b) (size b)). 
+  rewrite eqb_refl. unfold ashr_aux_a. unfold list2nat_be_a, nat2bv.
+  rewrite list2N_N2List_eq. unfold ashr_n_bits_a. unfold size, zeros.
+  rewrite Nat2N.id. rewrite Nat.ltb_irrefl. rewrite sign. 
+  simpl. easy.
 Qed.
 
 
