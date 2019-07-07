@@ -1261,6 +1261,34 @@ Proof.
         ++ rewrite (@ashr_size_sign0 (b :: s) signb). unfold zeros.
            unfold size. rewrite Nat2N.id. rewrite Hs. rewrite <- Ht. 
            apply bv_ule_0.
+    - exists (zeros n). split.
+      * apply zeros_size.
+      * rewrite <- Hs. rewrite bv_ashr_eq. rewrite bvashr_zero. 
+        apply bv_uge_bv_ule in H. apply H.
+  + intros H. destruct H as (x, (Hx, H)).
+    destruct (@sign_0_or_1 s).
+    - unfold size in Hs, Ht. apply N2Nat.inj_iff in Hs.
+      apply N2Nat.inj_iff in Ht. rewrite Nat2N.id in Hs, Ht. 
+      case s in *.
+      * simpl in Hs. rewrite <- Hs in Ht. 
+        apply length_zero_iff_nil in Ht. rewrite Ht.
+        right. apply bv_uge_refl.
+      * left. rewrite <- (@N2Nat.id n). case (N.to_nat n) in *.
+        ++ now contradict Hs.
+        ++ unfold signed_min. rewrite Nat2N.id.
+           unfold bv_ult. unfold size. rewrite Hs.
+           rewrite length_smin_big_endian. rewrite N.eqb_refl.
+           unfold ult_list. rewrite rev_involutive.
+           assert (smin_big_endian (S n0) = 
+                   true :: (mk_list_false n0)) by easy.
+           rewrite H1. rewrite <- hd_rev in H0.
+           rewrite <- rev_length in Hs.
+           case (rev (b :: s)) in *.
+           -- now contradict Hs.
+           -- assert (hd false (b0 :: l) = false -> b0 = false) by easy.
+              apply H2 in H0. rewrite H0. simpl. case l; 
+              case (mk_list_false n0); easy.
+    - apply bv_ule_bv_uge in H. right.
 Admitted.
  
 (* s >=u ~s \/ s >= t <=> s >>a x >= t *)  
