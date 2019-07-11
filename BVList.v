@@ -8301,16 +8301,80 @@ Proof.
   + rewrite <- bv_ashr_eq. unfold bv_uge. 
     rewrite (@bv_ashr_size (size (h :: t)) 
                 (h :: t) (x) eq_refl Hsize).
-      rewrite eqb_refl. unfold uge_list. unfold bv_ashr. 
-      rewrite Hsize. rewrite eqb_refl. unfold ashr_aux.
-      unfold list2nat_be_a. rewrite Hsign.
-      rewrite rev_ashr_n_bits. rewrite <- hd_rev in Hsign.
+    rewrite eqb_refl. unfold uge_list. unfold bv_ashr. 
+    rewrite Hsize. rewrite eqb_refl. unfold ashr_aux.
+    unfold list2nat_be_a. rewrite Hsign.
+    rewrite rev_ashr_n_bits. rewrite <- hd_rev in Hsign.
     apply positive_bv_implies_uge_list_big_endian_shl_n_bits.
     apply Hsign.
 Qed.
 
 
 (* sign(b) = 1 -> a >= (b >>a x) -> a >= b) *)
+
+Definition ashl_one_bit  (a: list bool) : list bool :=
+   match a with
+     | [] => []
+     | _ => true :: removelast a 
+   end.
+
+Fixpoint ashl_n_bits  (a: list bool) (n: nat): list bool :=
+    match n with
+      | O => a
+      | S n' => ashl_n_bits (ashl_one_bit a) n'  
+    end.
+
+Lemma ashl_n_ashl_one_comm: forall n a, 
+  (ashl_n_bits (ashl_one_bit a) n) = ashl_one_bit (ashl_n_bits a n).
+Proof. 
+  intro n. induction n; intros.
+  - now cbn.
+  - cbn. now rewrite IHn.
+Qed.
+
+Lemma rev_ashr_one_bit_true :forall (b : bitvector), 
+  (rev (ashr_one_bit b true)) = (ashl_one_bit (rev b)).
+Proof.
+  induction b.
+  + easy.
+  + simpl. rewrite rev_app_distr. simpl. unfold ashl_one_bit.
+    case_eq (rev b ++ [a]); intros case.
+    - case a in *; case (rev b) in *; now contradict case.
+    - intros l case2. rewrite <- case2. 
+      rewrite removelast_app. simpl. rewrite app_nil_r.
+      easy. easy.
+Qed.
+
+Lemma rev_ashr_n_bits_true : forall (n : nat) (b : bitvector),
+  rev (ashr_n_bits b n true) = ashl_n_bits (rev b) n.
+Proof.
+  induction n; intros b.
+  + easy.
+  + simpl. specialize (@IHn (ashr_one_bit b true)).
+    rewrite IHn. rewrite rev_ashr_one_bit_true. easy.
+Qed.
+
+Lemma ashl_one_implies_uge_list_big_endian : forall (b : bitvector),
+  uge_list_big_endian (ashl_one_bit b) b = true.
+Proof.
+  induction b.
+  + easy.
+  + unfold ashl_one_bit. case a.
+    - Admitted.
+
+Lemma negative_bv_implies_ashl_n_bits_uge_list_big_endian : 
+  forall (n : nat) (b : bitvector), hd false b = true ->
+  uge_list_big_endian (ashl_n_bits b n) b = true.
+Proof.
+  induction n.
+  + intros b Hsign. simpl. apply uge_list_big_endian_refl.
+  + intros b Hsign. specialize (@IHn b Hsign). simpl.
+    pose proof (@ashl_one_implies_uge_list_big_endian (ashl_n_bits b n)) as ashl1.
+    pose proof (@uge_list_big_endian_trans 
+      (ashl_one_bit (ashl_n_bits b n)) (ashl_n_bits b n) b 
+      ashl1 IHn) as trans. rewrite <- ashl_n_ashl_one_comm in trans. 
+    apply trans.
+Qed.
 
 Lemma negative_bv_implies_bv_ashr_uge : forall (b x : bitvector),
   size x = size b -> last b false = true ->
@@ -8321,20 +8385,14 @@ Proof.
   + rewrite <- bv_ashr_eq. unfold bv_uge. 
     rewrite (@bv_ashr_size (size (h :: t)) 
                 (h :: t) (x) eq_refl Hsize).
-      rewrite eqb_refl. unfold uge_list. unfold bv_ashr. 
-      rewrite Hsize. rewrite eqb_refl. unfold ashr_aux.
-      unfold list2nat_be_a. rewrite Hsign.
-(*      rewrite rev_ashr_n_bits. rewrite <- hd_rev in Hsign.
-    apply positive_bv_implies_uge_list_big_endian_shl_n_bits.
-    apply Hsign.*)
+    rewrite eqb_refl. unfold uge_list. unfold bv_ashr. 
+    rewrite Hsize. rewrite eqb_refl. unfold ashr_aux.
+    unfold list2nat_be_a. rewrite Hsign.
+    rewrite rev_ashr_n_bits_true. rewrite <- hd_rev in Hsign.
+    apply negative_bv_implies_ashl_n_bits_uge_list_big_endian.
+    apply Hsign.
 Qed.
 
-(*
-unfold bv_uge in *.
-  rewrite Ha, Hb in *. rewrite (@bv_ashr_size n b x Hb Hx) in uge.
-  rewrite N.eqb_refl in *. unfold uge_list in *.
-Admitted.
-*)
 
 (* ashr-thrms-end *)
 
