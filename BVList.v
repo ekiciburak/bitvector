@@ -8276,7 +8276,8 @@ Proof.
   + easy.
   + unfold shl_one_bit. case a.
     - case b; easy.
-    - Admitted.
+    - Reconstr.scrush.
+  Qed.
 
 Lemma positive_bv_implies_uge_list_big_endian_shl_n_bits : 
   forall (n : nat) (b : bitvector), hd false b = false ->
@@ -8360,7 +8361,9 @@ Proof.
   induction b.
   + easy.
   + unfold ashl_one_bit. case a.
-    - Admitted.
+    - Reconstr.scrush.
+    - case b; easy.
+  Qed.
 
 Lemma negative_bv_implies_ashl_n_bits_uge_list_big_endian : 
   forall (n : nat) (b : bitvector), hd false b = true ->
