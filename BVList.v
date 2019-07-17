@@ -67,6 +67,8 @@ Module Type BITVECTOR.
   (* Constants *)
   Parameter zeros     : forall n, bitvector n.
   Parameter one       : forall n, bitvector n.
+  Parameter signed_min : forall n, bitvector n.
+  Parameter signed_max : forall n, bitvector n.
 
   (*equality*)
   Parameter bv_eq     : forall n, bitvector n -> bitvector n -> bool.
@@ -163,6 +165,8 @@ Parameter bitOf      : nat -> bitvector -> bool.
 (* Constants *)
 Parameter zeros      : N -> bitvector.
 Parameter one        : N -> bitvector.
+Parameter signed_min : N -> bitvector.
+Parameter signed_max : N -> bitvector.
 
 (*equality*)
 Parameter bv_eq      : bitvector -> bitvector -> bool.
@@ -216,6 +220,8 @@ Axiom of_bits_size   : forall l, N.to_nat (size (of_bits l)) = List.length l.
 Axiom _of_bits_size  : forall l s,(size (_of_bits l s)) = s.
 Axiom zeros_size     : forall n, size (zeros n) = n.
 Axiom one_size       : forall n, size (one n) = n.
+Axiom signed_min_size : forall n, size (signed_min n) = n.
+Axiom signed_max_size : forall n, size (signed_max n) = n.
 Axiom bv_concat_size : forall n m a b, size a = n -> size b = m -> size (bv_concat a b) = n + m.
 Axiom bv_and_size    : forall n a b, size a = n -> size b = n -> size (bv_and a b) = n.
 Axiom bv_or_size     : forall n a b, size a = n -> size b = n -> size (bv_or a b) = n.
@@ -316,6 +322,12 @@ Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
 
   Definition one (n:N) : bitvector n :=
     @MkBitvector _ (M.one n) (M.one_size n).
+
+  Definition signed_min (n:N) : bitvector n :=
+    @MkBitvector _ (M.signed_min n) (M.signed_min_size n).
+
+  Definition signed_max (n:N) : bitvector n :=
+    @MkBitvector _ (M.signed_max n) (M.signed_max_size n).
 
   Definition nat2bv (n: nat) (s: N): bitvector s.
   Proof. specialize (@MkBitvector s (M.nat2bv n s)); intros. apply X.
@@ -1190,6 +1202,51 @@ Proof. unfold size, zeros. now rewrite length_mk_list_false, N2Nat.id. Qed.
 Lemma one_size (n : N) : size (one n) = n.
 Proof. unfold size. unfold one. rewrite length_mk_list_one.
   rewrite N2Nat.id. reflexivity. Qed.
+
+Definition smin_big_endian (t : nat) : list bool :=
+  match t with
+    | O => []
+    | S t' => true :: mk_list_false t'
+  end.
+
+Definition signed_min (n : N) : bitvector := 
+    rev (smin_big_endian (N.to_nat n)).
+
+Lemma length_smin_big_endian : forall n, 
+  length (rev (smin_big_endian n)) = n.
+Proof. 
+  intro n. induction n as [| n' IHn].
+  + reflexivity.
+  + rewrite rev_length in *. simpl.
+    rewrite length_mk_list_false. easy.
+Qed.
+
+Lemma signed_min_size (n : N) : size (signed_min n) = n.
+Proof. unfold size. unfold signed_min. 
+  rewrite length_smin_big_endian. rewrite N2Nat.id. easy. Qed.
+
+
+Definition smax_big_endian (t : nat) : list bool :=
+  match t with
+    | O => []
+    | S t' => false :: mk_list_true t'
+  end.
+
+Definition signed_max (n : N) : bitvector := 
+    rev (smax_big_endian (N.to_nat n)).
+
+Lemma length_smax_big_endian : forall n, 
+  length (rev (smax_big_endian n)) = n.
+Proof. 
+  intro n. induction n as [| n' IHn].
+  + reflexivity.
+  + rewrite rev_length in *. simpl.
+    rewrite length_mk_list_true. easy.
+Qed.
+
+Lemma signed_max_size (n : N) : size (signed_max n) = n.
+Proof. unfold size. unfold signed_max. 
+  rewrite length_smax_big_endian. rewrite N2Nat.id. easy. Qed.
 
 Lemma List_eq : forall (l m: list bool), beq_list l m = true <-> l = m.
 Proof.
@@ -8019,6 +8076,270 @@ Lemma bv_not_not_eq : forall (h : bool) (t : bitvector),
 Proof.
   intros. unfold not. induction h; easy.
 Qed.
+
+
+(* s <u (signed_min (size s)) -> sign(s) = 0 *)
+
+Lemma cons_ult_list_big_endian : forall (b : bool) (l1 l2 : list bool), 
+  ult_list_big_endian (b :: l1) (b :: l2) = true ->
+  ult_list_big_endian l1 l2 = true.
+Proof.
+  intros b l1 l2 ult. case b in *.
+  + simpl in ult. case l1 in *.
+    - case l2 in *; easy.
+    - case l2 in *.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+  + simpl in ult. case l1 in *.
+    - case l2 in *; easy.
+    - case l2 in *.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+      * rewrite orb_true_iff in ult. destruct ult; easy.
+Qed.
+
+Lemma ult_b_signed_min_implies_positive_sign : forall (b : bitvector)
+  (n : N), size b = n -> bv_ult b (signed_min n) = true ->
+  last b false = false.
+Proof.
+  intros b n Hb ult.
+  unfold bv_ult in ult. rewrite signed_min_size in ult.
+  rewrite Hb in ult. rewrite N.eqb_refl in ult. unfold ult_list in ult.
+  unfold signed_min in ult. rewrite rev_involutive in ult.
+  unfold size in Hb. apply N2Nat.inj_iff in Hb.
+  rewrite Nat2N.id in Hb. rewrite <- rev_length in Hb.
+  rewrite <- hd_rev. case (rev b) in *.
+  + easy.
+  + case (N.to_nat n) in *.
+    - now contradict Hb.
+    - assert (smin_big_endian (S n0) = true :: (mk_list_false n0)) 
+      by easy. rewrite H in ult. case b0 in *. 
+      * apply cons_ult_list_big_endian in ult. simpl in Hb. 
+        apply Nat.succ_inj in Hb. rewrite <- Hb in ult.
+        now rewrite not_ult_list_big_endian_x_0 in ult.
+      * easy.
+Qed.
+
+
+(* [] >> x = [] *)
+Lemma bvashr_nil : forall (b : bitvector), bv_ashr_a nil b = [].
+Proof.
+  unfold bv_ashr_a. induction b.
+  + simpl. easy.
+  + simpl. easy.
+Qed.
+
+
+(* sign(s) = 0 -> s >= (s >>a x) *)
+
+Lemma rev_ashr_one_bit :forall (b : bitvector), 
+  (rev (ashr_one_bit b false)) = (shl_one_bit (rev b)).
+Proof.
+  induction b.
+  + easy.
+  + simpl. rewrite rev_app_distr. simpl. unfold shl_one_bit.
+    case_eq (rev b ++ [a]); intros case.
+    - case a in *; case (rev b) in *; now contradict case.
+    - intros l case2. rewrite <- case2. 
+      rewrite removelast_app. simpl. rewrite app_nil_r.
+      easy. easy.
+Qed.
+
+Lemma rev_ashr_n_bits : forall (n : nat) (b : bitvector),
+  rev (ashr_n_bits b n false) = shl_n_bits (rev b) n.
+Proof.
+  induction n.
+  + easy.
+  + intros b. simpl. specialize (@IHn (ashr_one_bit b false)).
+    rewrite IHn. rewrite rev_ashr_one_bit. easy.
+Qed.
+
+Lemma shl_one_implies_uge_list_big_endian : forall (b : bitvector),
+  uge_list_big_endian b (shl_one_bit b) = true.
+Proof.
+  induction b.
+  + easy.
+  + unfold shl_one_bit. case a.
+    - case b; easy.
+    - Reconstr.scrush.
+  Qed.
+
+Lemma positive_bv_implies_uge_list_big_endian_shl_n_bits : 
+  forall (n : nat) (b : bitvector), hd false b = false ->
+  uge_list_big_endian b (shl_n_bits b n) = true.
+Proof.
+  induction n.
+  + intros b Hsign. simpl. apply uge_list_big_endian_refl.
+  + intros b Hsign. specialize (@IHn b Hsign). simpl.
+    pose proof (@shl_one_implies_uge_list_big_endian (shl_n_bits b n)) as shl1.
+    pose proof (@uge_list_big_endian_trans 
+      b (shl_n_bits b n) (shl_one_bit (shl_n_bits b n))
+      IHn shl1) as trans. rewrite <- shl_n_shl_one_comm in trans. 
+    apply trans.
+Qed.
+
+Lemma positive_bv_implies_uge_bv_ashr : forall (b x: bitvector),
+  size x = size b -> last b false = false -> 
+  bv_uge b (bv_ashr_a b x) = true.
+Proof.
+  intros b x Hsize Hsign. case b as [|h t].
+  + rewrite bvashr_nil. apply bv_uge_refl.
+  + rewrite <- bv_ashr_eq. unfold bv_uge. 
+    rewrite (@bv_ashr_size (size (h :: t)) 
+                (h :: t) (x) eq_refl Hsize).
+    rewrite N.eqb_refl. unfold uge_list. unfold bv_ashr. 
+    rewrite Hsize. rewrite N.eqb_refl. unfold ashr_aux.
+    unfold list2nat_be_a. rewrite Hsign.
+    rewrite rev_ashr_n_bits. rewrite <- hd_rev in Hsign.
+    apply positive_bv_implies_uge_list_big_endian_shl_n_bits.
+    apply Hsign.
+Qed.
+
+
+(* sign(b) = 1 -> a >= (b >>a x) -> a >= b) *)
+
+Definition ashl_one_bit  (a: list bool) : list bool :=
+   match a with
+     | [] => []
+     | _ => true :: removelast a 
+   end.
+
+Fixpoint ashl_n_bits  (a: list bool) (n: nat): list bool :=
+    match n with
+      | O => a
+      | S n' => ashl_n_bits (ashl_one_bit a) n'  
+    end.
+
+Lemma ashl_n_ashl_one_comm: forall n a, 
+  (ashl_n_bits (ashl_one_bit a) n) = ashl_one_bit (ashl_n_bits a n).
+Proof. 
+  intro n. induction n; intros.
+  - now cbn.
+  - cbn. now rewrite IHn.
+Qed.
+
+Lemma rev_ashr_one_bit_true :forall (b : bitvector), 
+  (rev (ashr_one_bit b true)) = (ashl_one_bit (rev b)).
+Proof.
+  induction b.
+  + easy.
+  + simpl. rewrite rev_app_distr. simpl. unfold ashl_one_bit.
+    case_eq (rev b ++ [a]); intros case.
+    - case a in *; case (rev b) in *; now contradict case.
+    - intros l case2. rewrite <- case2. 
+      rewrite removelast_app. simpl. rewrite app_nil_r.
+      easy. easy.
+Qed.
+
+Lemma rev_ashr_n_bits_true : forall (n : nat) (b : bitvector),
+  rev (ashr_n_bits b n true) = ashl_n_bits (rev b) n.
+Proof.
+  induction n; intros b.
+  + easy.
+  + simpl. specialize (@IHn (ashr_one_bit b true)).
+    rewrite IHn. rewrite rev_ashr_one_bit_true. easy.
+Qed.
+
+Lemma ashl_one_implies_uge_list_big_endian : forall (b : bitvector),
+  uge_list_big_endian (ashl_one_bit b) b = true.
+Proof.
+  induction b.
+  + easy.
+  + unfold ashl_one_bit. case a.
+    - Reconstr.scrush.
+    - case b; easy.
+  Qed.
+
+Lemma negative_bv_implies_ashl_n_bits_uge_list_big_endian : 
+  forall (n : nat) (b : bitvector), hd false b = true ->
+  uge_list_big_endian (ashl_n_bits b n) b = true.
+Proof.
+  induction n.
+  + intros b Hsign. simpl. apply uge_list_big_endian_refl.
+  + intros b Hsign. specialize (@IHn b Hsign). simpl.
+    pose proof (@ashl_one_implies_uge_list_big_endian (ashl_n_bits b n)) as ashl1.
+    pose proof (@uge_list_big_endian_trans 
+      (ashl_one_bit (ashl_n_bits b n)) (ashl_n_bits b n) b 
+      ashl1 IHn) as trans. rewrite <- ashl_n_ashl_one_comm in trans. 
+    apply trans.
+Qed.
+
+Lemma negative_bv_implies_bv_ashr_uge : forall (b x : bitvector),
+  size x = size b -> last b false = true ->
+  bv_uge (bv_ashr_a b x) b = true.
+Proof.
+  intros b x Hsize Hsign. case b as [|h t].
+  + rewrite bvashr_nil. apply bv_uge_refl.
+  + rewrite <- bv_ashr_eq. unfold bv_uge. 
+    rewrite (@bv_ashr_size (size (h :: t)) 
+                (h :: t) (x) eq_refl Hsize).
+    rewrite N.eqb_refl. unfold uge_list. unfold bv_ashr. 
+    rewrite Hsize. rewrite N.eqb_refl. unfold ashr_aux.
+    unfold list2nat_be_a. rewrite Hsign.
+    rewrite rev_ashr_n_bits_true. rewrite <- hd_rev in Hsign.
+    apply negative_bv_implies_ashl_n_bits_uge_list_big_endian.
+    apply Hsign.
+Qed.
+
+
+(* sign b = 1 -> b >>a (size b) = 11...1 *)
+Lemma ashr_size_sign1 : forall (b : bitvector), 
+  last b false = true -> 
+  bv_ashr_a b (nat2bv (length b) (size b)) = bv_not (zeros (size b)).
+Proof.
+  intros b sign. unfold bv_ashr_a. rewrite (@nat2bv_size (length b) (size b)). 
+  rewrite N.eqb_refl. unfold ashr_aux_a. unfold list2nat_be_a, nat2bv.
+  rewrite list2N_N2List_eq. unfold ashr_n_bits_a. unfold size, zeros.
+  rewrite Nat2N.id. rewrite Nat.ltb_irrefl. rewrite sign. 
+  simpl. rewrite bv_not_false_true. easy.
+Qed.
+
+
+(* sign b = 0 -> b >>a (size b) = 00...0 *)
+Lemma ashr_size_sign0 : forall (b : bitvector), 
+  last b false = false -> 
+  bv_ashr_a b (nat2bv (length b) (size b)) = zeros (size b).
+Proof.
+  intros b sign. unfold bv_ashr_a. rewrite (@nat2bv_size (length b) (size b)). 
+  rewrite N.eqb_refl. unfold ashr_aux_a. unfold list2nat_be_a, nat2bv.
+  rewrite list2N_N2List_eq. unfold ashr_n_bits_a. unfold size, zeros.
+  rewrite Nat2N.id. rewrite Nat.ltb_irrefl. rewrite sign. 
+  simpl. easy.
+Qed.
+
+
+(* 0 <= x *)
+
+Lemma ule_list_big_endian_0 : forall (x : bitvector),
+  ule_list_big_endian (mk_list_false (length x)) x = true.
+Proof.
+  intros x. induction x.
+  + easy.
+  + case_eq a; intros case.
+    - rewrite length_of_tail. rewrite mk_list_false_succ. case x; easy.
+    - rewrite length_of_tail. rewrite mk_list_false_succ. 
+      apply ule_list_big_endian_cons. apply IHx.
+Qed.
+
+Lemma bv_ule_0 : forall (x : bitvector), 
+  bv_ule (mk_list_false (length x)) x = true.
+Proof.
+  intros x. unfold bv_ule. unfold size. rewrite length_mk_list_false.
+  rewrite N.eqb_refl. unfold ule_list. rewrite rev_mk_list_false.
+  rewrite <- rev_length. apply ule_list_big_endian_0.
+Qed.
+
+
+(* sign(b) = 0 or 1 *)
+Lemma sign_0_or_1 : forall (b : bitvector), 
+  last b false = false \/ last b false = true.
+Proof.
+  intros b. case b.
+  + now left.
+  + intros h t. case (last (h :: t)).
+    - now right.
+    - now left.
+Qed.
+
 
 End RAWBITVECTOR_LIST.
 

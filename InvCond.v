@@ -1255,6 +1255,61 @@ Proof. split.
        + now apply bvashr_ugt2_rtl.
 Qed.
 
+(* (s <u min(s) \/ t >= s) <=> s >>a x <= t *)
+Theorem bvashr_ule2 : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    ((bv_ult s (signed_min n) = true) \/ (bv_uge t s = true))
+    (exists (x : bitvector), (size x) = n /\ 
+      bv_ule (bv_ashr s x) t = true).
+Proof.
+  intros n s t Hs Ht. split.
+  + intros H. destruct H.
+    - pose proof (@ult_b_signed_min_implies_positive_sign s n Hs H)
+      as signb. exists (nat2bv (length s) (size s)). split.
+      * rewrite nat2bv_size. apply Hs.
+      * rewrite bv_ashr_eq. unfold size in Hs, Ht. 
+        apply N2Nat.inj_iff in Hs. apply N2Nat.inj_iff in Ht.
+        rewrite Nat2N.id in Hs, Ht.
+        case s in *.
+        ++ rewrite bvashr_nil. simpl in Hs. rewrite <- Hs in Ht. 
+           apply length_zero_iff_nil in Ht. rewrite Ht. 
+           apply bv_ule_refl.
+        ++ rewrite (@ashr_size_sign0 (b :: s) signb). unfold zeros.
+           unfold size. rewrite Nat2N.id. rewrite Hs. rewrite <- Ht. 
+           apply bv_ule_0.
+    - exists (zeros n). split.
+      * apply zeros_size.
+      * rewrite <- Hs. rewrite bv_ashr_eq. rewrite bvashr_zero. 
+        apply bv_uge_bv_ule in H. apply H.
+  + intros H. destruct H as (x, (Hx, H)).
+    destruct (@sign_0_or_1 s).
+    - unfold size in Hs, Ht. apply N2Nat.inj_iff in Hs.
+      apply N2Nat.inj_iff in Ht. rewrite Nat2N.id in Hs, Ht. 
+      case s in *.
+      * simpl in Hs. rewrite <- Hs in Ht. 
+        apply length_zero_iff_nil in Ht. rewrite Ht.
+        right. apply bv_uge_refl.
+      * left. rewrite <- (@N2Nat.id n). case (N.to_nat n) in *.
+        ++ now contradict Hs.
+        ++ unfold signed_min. rewrite Nat2N.id.
+           unfold bv_ult. unfold size. rewrite Hs.
+           rewrite length_smin_big_endian. rewrite N.eqb_refl.
+           unfold ult_list. rewrite rev_involutive.
+           assert (smin_big_endian (S n0) = 
+                   true :: (mk_list_false n0)) by easy.
+           rewrite H1. rewrite <- hd_rev in H0.
+           rewrite <- rev_length in Hs.
+           case (rev (b :: s)) in *.
+           -- now contradict Hs.
+           -- assert (hd false (b0 :: l) = false -> b0 = false) by easy.
+              apply H2 in H0. rewrite H0. simpl. case l; 
+              case (mk_list_false n0); easy.
+    - apply bv_ule_bv_uge in H. right. rewrite <- Hs in Hx. 
+      pose proof (@negative_bv_implies_bv_ashr_uge s x Hx H0).
+      rewrite bv_ashr_eq in H. 
+      apply (@bv_uge_list_trans t (bv_ashr_a s x) s H H1).
+Qed.
+
 (*------------------------------------------------------------*)
 
 
