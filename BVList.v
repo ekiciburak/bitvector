@@ -1026,6 +1026,7 @@ Proof. induction l; intros.
             right. Reconstr.reasy Reconstr.Empty Reconstr.Empty.
 Qed.
 
+(* sign(b) = 0 or 1 *)
 Lemma sign_0_or_1 : forall (b : bitvector), 
   last b false = false \/ last b false = true.
 Proof.
