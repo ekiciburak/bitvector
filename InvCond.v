@@ -1310,6 +1310,39 @@ Proof.
       apply (@bv_uge_list_trans t (bv_ashr_a s x) s H H1).
 Qed.
 
+(* s >=u ~s \/ s >= t <=> s >>a x >= t *)  
+Theorem bvashr_uge2 : forall (n : N), forall (s t : bitvector),
+  (size s) = n -> (size t) = n -> iff
+    ((bv_uge s (bv_not s) = true) \/ (bv_uge s t = true))
+    (exists (x : bitvector), (size x = n) /\ (bv_uge (bv_ashr_a s x) t = true)).
+Proof.
+  intros n s t Hs Ht. split.
+  + intros H. destruct H.
+    - pose proof (@uge_bvnot_refl_implies_sign_neg s) as sign_s.
+      exists (nat2bv (length s) (size s)). split.
+      * rewrite nat2bv_size. apply Hs.
+      * case s in *.
+        ++ rewrite bvashr_nil. unfold size in Hs, Ht.
+           simpl in Hs. rewrite <- Hs in Ht. rewrite <- N2Nat.inj_iff in Ht.
+           rewrite Nat2N.id in Ht. apply length_zero_iff_nil in Ht. rewrite Ht.
+           easy.
+        ++ assert (b :: s <> nil) by easy. specialize (@sign_s H0 H). 
+           pose proof (@ashr_size_sign1 (b :: s) sign_s) as ones.
+           rewrite ones. unfold zeros. rewrite bv_not_false_true.
+           rewrite Hs. rewrite <- Ht. apply ones_bv_uge_size.
+    - exists (zeros n). split.
+      * apply zeros_size.
+      * rewrite <- Hs. rewrite bvashr_zero. apply H.
+  + intros (x, (Hx, H)). destruct (@sign_0_or_1 s).
+    - pose proof (@positive_bv_implies_uge_bv_ashr s x) as uge.
+      rewrite Hs, Hx in uge. specialize (@uge eq_refl H0).
+      right. apply (@bv_uge_list_trans s (bv_ashr_a s x) t uge H).
+    - left. case s in *.
+      * easy.
+      * assert (b :: s <> nil) by easy.
+        apply (@sign_neg_implies_uge_bvnot_refl (b :: s) H1 H0).
+Qed.
+
 (*------------------------------------------------------------*)
 
 

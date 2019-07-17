@@ -219,6 +219,21 @@ Proof.
   + intros H. destruct H as ((x, Hx), H). apply rtl. now exists x. 
 Qed.
 
+(* s >=u ~s \/ s >= t <=> s >>a x >= t *)  
+Theorem bvashr_uge2 : forall (n : N), forall (s t : bitvector n),
+  iff
+    ((bv_uge s (bv_not s) = true) \/ (bv_uge s t = true))
+    (exists (x : bitvector n), (bv_uge (bv_ashr_a s x) t = true)).
+Proof.
+  intros n s t. destruct s as (s, Hs). destruct t as (t, Ht).
+    unfold bv_ult, bv_uge, bv_ule, bv_ashr, signed_min in *.
+    cbn in *. pose proof (@bvashr_uge2 n s t Hs Ht). 
+    destruct H as (ltr, rtl). split.
+  + intros H. specialize (@ltr H). destruct ltr as (x, (Hx, ltr)).
+    exists (@MkBitvector n x Hx). easy.
+  + intros H. destruct H as ((x, Hx), H). apply rtl. now exists x. 
+Qed.
+
 (*------------------------------------------------------------*)
 
 
