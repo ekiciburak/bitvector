@@ -1034,7 +1034,6 @@ Fixpoint ule_list_big_endian (x y : list bool) :=
   | nil, nil => true
   | nil, _ => false 
   | _, nil => false 
-  | xi :: nil, yi :: nil => orb (eqb xi yi) (andb (negb xi) yi)
   | xi :: x', yi :: y' =>
     orb (andb (Bool.eqb xi yi) (ule_list_big_endian x' y'))
           (andb (negb xi) yi)
@@ -2515,14 +2514,14 @@ Proof.
         { case l in *; easy. }
         { case l in *.
           + rewrite orb_true_iff in H. destruct H.
-            ++ rewrite eqb_true_iff in H. 
-               case z in *; now rewrite <- H in H0.
+            ++ rewrite andb_true_iff, eqb_true_iff in H.
+               destruct H. rewrite <- H in H0. apply H0. 
             ++ rewrite andb_true_iff, negb_true_iff in H.
                destruct H. subst. case z in *.
               -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
                  destruct H0.
-                ** right. split; easy.
-                ** now destruct H.
+                ** right. rewrite andb_true_iff. split; easy.
+                ** right. rewrite andb_true_iff in *. destruct H. split; easy. 
               -- rewrite orb_true_iff, andb_true_iff, negb_true_iff, eqb_true_iff in *.
                  destruct H0.
                 ** right. rewrite andb_true_iff, negb_true_iff. destruct H.
@@ -2633,7 +2632,7 @@ Proof.
   intros x. induction x as [| h t].
   + simpl. easy.
   + intros y. case y.
-    - easy.
+    - case h; case t; easy.
     - intros b l. simpl. 
       case t in *.
       * simpl. case l in *.
@@ -2665,7 +2664,8 @@ Proof.
             apply negb_true_iff in H. subst. simpl.
             case z in *.
             * rewrite orb_true_iff in H0. destruct H0.
-              - apply eqb_prop in H. symmetry. apply H.
+              - rewrite andb_true_iff, eqb_true_iff in H. 
+                destruct H. symmetry. apply H.
               - rewrite andb_true_iff in H. destruct H.
                 simpl in H. now contradict H.
             * rewrite !orb_true_iff, !andb_true_iff in H0. 
@@ -4697,7 +4697,7 @@ Proof.
   + unfold ule_list_big_endian. simpl. fold ule_list_big_endian.
     destruct t1.
     - rewrite andb_true_iff in H.  destruct H. destruct t2.
-      * rewrite orb_true_iff. left. apply H.
+      * rewrite orb_true_iff. left. rewrite andb_true_iff. split; easy.
       * now contradict H0.
     - rewrite orb_true_iff. left. apply H.
 Qed.
@@ -4716,7 +4716,7 @@ Proof.
       * right. rewrite andb_true_iff. split.
         { apply H. }
         { easy. }
-      * left. apply H.
+      * left. rewrite andb_true_iff in H. apply H.
     - rewrite orb_true_iff, andb_true_iff in *. destruct H.
       * destruct H. now contradict H0.
       * left. rewrite andb_true_iff in H. apply H.
@@ -4933,8 +4933,8 @@ Proof.
       * case y in *.
         ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
            destruct H.
-           *** rewrite eqb_true_iff in H. right. now rewrite H.
-           *** rewrite negb_true_iff in H. destruct H as (Ha, Ha0).
+           *** rewrite eqb_true_iff in H. right. destruct H. now rewrite H.
+           *** rewrite andb_true_iff, negb_true_iff in H. destruct H as (Ha, Ha0).
                rewrite Ha, Ha0. now left.
         ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
            rewrite andb_true_iff, negb_true_iff in H. destruct H.
@@ -4978,7 +4978,7 @@ Proof.
     - easy.
     - destruct H; easy.
   + intros y H. induction y.
-    - destruct H; easy.
+    - destruct H; case a in *; case x in *; easy.
     - destruct H.
       * apply ult_list_big_endian_implies_ule. apply H.
       * rewrite H. apply ule_list_big_endian_refl.
@@ -5028,7 +5028,7 @@ Lemma ule_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
 Proof.
   intros. unfold ule_list_big_endian. case b1 in *.
   + case b2 in *.
-    - rewrite orb_true_iff, eqb_true_iff. now left.
+    - rewrite orb_true_iff, andb_true_iff, eqb_true_iff. now left.
     - easy.
   + case b2 in *.
     - simpl in H. case b1 in *; easy.
@@ -5171,7 +5171,6 @@ Fixpoint uge_list_big_endian (x y : list bool) :=
   | nil, nil => true
   | nil, _ => false 
   | _, nil => false 
-  | xi :: nil, yi :: nil => orb (eqb xi yi) (andb xi (negb yi))
   | xi :: x', yi :: y' =>
     orb (andb (Bool.eqb xi yi) (uge_list_big_endian x' y'))
           (andb xi (negb yi))
@@ -5222,8 +5221,8 @@ Proof.
         { case a; case b; simpl; easy. }
       * rewrite !orb_true_iff, !andb_true_iff. intro. destruct H.
         { destruct H. apply IHx in H0. apply Bool.eqb_prop in H.
-          rewrite H. rewrite H0. case b; case l; easy. }
-        { destruct H. apply negb_true_iff in H. subst. case l; easy. }
+          rewrite H. rewrite H0. left. now rewrite eqb_true_iff. }
+        { destruct H. apply negb_true_iff in H. subst. right. now rewrite negb_true_iff. }
 Qed. 
 
 Lemma ule_list_uge_list : forall x y, ule_list x y = true -> uge_list y x = true.
@@ -5277,8 +5276,8 @@ Proof.
         { case a; case b; simpl; easy. }
       * rewrite !orb_true_iff, !andb_true_iff. intro. destruct H.
         { destruct H. apply IHx in H0. apply Bool.eqb_prop in H.
-          rewrite H. rewrite H0. case b; case l; easy. }
-        { destruct H. apply negb_true_iff in H0. subst. case l; easy. }
+          rewrite H. rewrite H0. left. now rewrite eqb_true_iff. }
+        { destruct H. apply negb_true_iff in H0. subst. now right. }
 Qed. 
 
 Lemma uge_list_ule_list : forall x y, uge_list x y = true -> ule_list y x = true.
@@ -5325,7 +5324,7 @@ Proof.
   intros x. induction x as [| h t].
   + simpl. easy.
   + intros y. case y.
-    - easy.
+    - case h; case t; easy.
     - intros b l. simpl. 
       case t in *.
       * simpl. case l in *.
@@ -5423,8 +5422,8 @@ Proof.
       * case y in *.
         ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
            destruct H.
-           *** rewrite eqb_true_iff in H. right. now rewrite H.
-           *** rewrite negb_true_iff in H. destruct H as (Ha, Ha0).
+           *** rewrite eqb_true_iff in H. right. destruct H. now rewrite H.
+           *** rewrite andb_true_iff, negb_true_iff in H. destruct H as (Ha, Ha0).
                rewrite Ha, Ha0. now left.
         ** simpl in H. rewrite orb_true_iff, andb_true_iff in H.
            rewrite andb_true_iff, negb_true_iff in H. destruct H.
@@ -5468,7 +5467,7 @@ Proof.
     - easy.
     - destruct H; easy.
   + intros y H. induction y.
-    - destruct H; easy.
+    - destruct H; case a in *; case x in *; easy.
     - destruct H.
       * apply ugt_list_big_endian_implies_uge. apply H.
       * rewrite H. apply uge_list_big_endian_refl.
@@ -5517,7 +5516,7 @@ Lemma uge_list_big_endian_cons : forall (b : bool) (b1 b2 : list bool),
 Proof.
   intros. unfold uge_list_big_endian. case b1 in *.
   + case b2 in *.
-    - rewrite orb_true_iff, eqb_true_iff. now left.
+    - rewrite orb_true_iff, andb_true_iff, eqb_true_iff. now left.
     - easy.
   + case b2 in *.
     - simpl in H. case b1 in *; easy.
