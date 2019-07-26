@@ -8310,7 +8310,7 @@ Proof.
 Qed.
 
 
-(* sign(b) = 1 -> a >= (b >>a x) -> a >= b) *)
+(* sign(s) = 1 -> (s >>a x) >= s) *)
 
 Definition ashl_one_bit  (a: list bool) : list bool :=
    match a with
