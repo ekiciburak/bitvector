@@ -327,7 +327,18 @@ Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector),
     (bv_ult t (bv_shr (bv_not s) s) = true).
 Proof.
   intros n s t Hs Ht H. destruct H as (x, (Hx, H)).
-  apply bv_ugt_bv_ult in H.
+  apply bv_ugt_bv_ult in H. rewrite bv_shr_eq in *.
+  unfold bv_shr_a in *. rewrite Hs, Hx in *. rewrite (@bv_not_size n s Hs). 
+  rewrite N.eqb_refl in *. unfold shr_n_bits_a in *.
+  case_eq (list2nat_be_a s <? length x); intros case.
+  + pose proof (@bv_not_size n s Hs) as len. pose proof Hx as Hxlen.
+    unfold size in len, Hxlen. apply N2Nat.inj_iff in len. 
+    apply N2Nat.inj_iff in Hxlen. rewrite Nat2N.id in len, Hxlen.
+    rewrite len. rewrite <- Hxlen. rewrite case in *. admit.
+  + rewrite case in *. pose proof (@not_bv_ult_x_zero t) as contr.
+    unfold zeros in contr. rewrite Ht in contr. rewrite <- Hx in contr.
+    unfold size in contr. rewrite Nat2N.id in contr. rewrite contr in H.
+    easy.
 Admitted.
 
 (*------------------------------------------------------------*)
