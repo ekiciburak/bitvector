@@ -4999,6 +4999,93 @@ Proof.
       * easy.
 Qed.
 
+
+(* x < y -> x ++ z < y ++ z *)
+Lemma postappend_length : forall (x y z : bitvector), length x = length y ->
+            length (x ++ z) = length (y ++ z).
+Proof.
+  induction x, y.
+  + easy.
+  + intros. now contradict H. 
+  + intros. now contradict H.
+  + intros. specialize (@IHx y z). simpl in H. apply eq_add_S in H.
+    specialize (@IHx H). simpl. apply eq_S. apply IHx. 
+Qed.
+
+Lemma cons_conjunct_ult_list_big_endian : forall (h1 h2 : bool) (t1 t2 : list bool),
+  (h1 = h2) /\ (ult_list_big_endian t1 t2 = true) ->
+  ult_list_big_endian (h1 :: t1) (h2 :: t2) = true.
+Proof.
+  intros. destruct H as (eq, ult). rewrite eq.
+  simpl. case t1 in *. 
+  + case t2 in *. 
+    - now contradict ult. 
+    - now contradict ult. 
+  + rewrite orb_true_iff, andb_true_iff, eqb_true_iff. left. split; easy.
+Qed.
+
+Lemma app_ult_list_big_endian : forall (x y z : bitvector), 
+  ult_list_big_endian x y = true -> ult_list_big_endian (z ++ x) (z ++ y) = true.
+Proof.
+  induction z; intros Hxy.
+  + easy. 
+  + specialize (@IHz Hxy). rewrite <- app_comm_cons. rewrite <- app_comm_cons.
+    apply cons_conjunct_ult_list_big_endian. split; easy.
+Qed. 
+
+Lemma rev_app_ult_list_big_endian : forall (x y z : bitvector),
+  ult_list_big_endian (rev x) (rev y) = true -> 
+  ult_list_big_endian (rev (x ++ z)) (rev (y ++ z)) = true.
+Proof.
+  intros  x y z ule_rx_ry. rewrite rev_app_distr. rewrite rev_app_distr.
+  apply app_ult_list_big_endian. apply ule_rx_ry.
+Qed.
+
+Lemma bv_ultP_post_append : forall (x y z : bitvector), bv_ultP x y -> 
+  bv_ultP (x ++ z) (y ++ z).
+Proof.
+  intros x y z Hlexy. unfold bv_ultP in *. case_eq (size x =? size y).
+  + intros Hxy. rewrite Hxy in Hlexy. apply Neqb_ok in Hxy.
+    unfold size in Hxy. apply Nat2N.inj in Hxy.
+    pose proof (@postappend_length x y z) as app_len. apply app_len in Hxy.
+    rewrite <- Nat2N.id in Hxy at 1. rewrite <- Nat2N.id in Hxy.
+    apply N2Nat.inj in Hxy. unfold size. rewrite Hxy.
+    unfold ult_listP in *. unfold ult_list in *.
+    pose proof (@rev_app_ult_list_big_endian x y z) as rev_app.
+    case_eq (ult_list_big_endian (rev x) (rev y)).
+    - intros. apply rev_app in H. rewrite H. rewrite N.eqb_refl. easy.
+    - intros. rewrite H in Hlexy. now contradict Hlexy.
+  + intros Hxy. rewrite Hxy in Hlexy. now contradict Hlexy.
+Qed.
+
+Lemma bv_ult_post_append : forall (x y z : bitvector), bv_ult x y = true -> 
+  bv_ult (x ++ z) (y ++ z) = true.
+Proof.
+  intros x y z Hlexy. unfold bv_ult in *. case_eq (size x =? size y).
+  + intros Hxy. rewrite Hxy in Hlexy. apply Neqb_ok in Hxy.
+    unfold size in Hxy. apply Nat2N.inj in Hxy.
+    pose proof (@postappend_length x y z) as app_len. apply app_len in Hxy.
+    rewrite <- Nat2N.id in Hxy at 1. rewrite <- Nat2N.id in Hxy.
+    apply N2Nat.inj in Hxy. unfold size. rewrite Hxy.
+    unfold ult_listP in *. unfold ult_list in *.
+    pose proof (@rev_app_ult_list_big_endian x y z) as rev_app.
+    case_eq (ult_list_big_endian (rev x) (rev y)).
+    - intros. apply rev_app in H. rewrite H. rewrite N.eqb_refl. easy.
+    - intros. rewrite H in Hlexy. now contradict Hlexy.
+  + intros Hxy. rewrite Hxy in Hlexy. now contradict Hlexy.
+Qed.
+
+
+(* forall x, s, toNat(s) < len(s) -> 
+  first (toNat(s)-len(s)) x 
+          <
+  first (toNat(s)-len(s)) ~(rev s) *)
+Lemma first_bits_ult : forall (x s : bitvector), size x = size s -> 
+  (N.to_nat (list2N s) < length s)%nat -> 
+  ult_list_big_endian 
+    (firstn (length s - N.to_nat (list2N s)) x)
+    (firstn (length s - N.to_nat (list2N s)) (bv_not (rev s))) = true.
+Admitted.
 (* ult-thrms-end *)
 
 
@@ -5706,17 +5793,6 @@ Qed.
 
 
 (* x <= y -> x ++ z <= y ++ z *)
-Lemma postappend_length : forall (x y z : bitvector), length x = length y ->
-            length (x ++ z) = length (y ++ z).
-Proof.
-  induction x, y.
-  + easy.
-  + intros. now contradict H. 
-  + intros. now contradict H.
-  + intros. specialize (@IHx y z). simpl in H. apply eq_add_S in H.
-    specialize (@IHx H). simpl. apply eq_S. apply IHx. 
-Qed.
-
 Lemma app_ule_list_big_endian : forall (x y z : bitvector), 
   ule_list_big_endian x y = true -> ule_list_big_endian (z ++ x) (z ++ y) = true.
 Proof.

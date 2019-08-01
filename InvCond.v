@@ -357,11 +357,13 @@ Proof.
                 firstn (length x - list2nat_be_a s) (rev x))
               (mk_list_false (list2nat_be_a s) ++
                 firstn (length x - list2nat_be_a s) (rev (bv_not s))) = true) as ult.
-    { unfold list2nat_be_a. rewrite rev_bvnot.
-     (* forall (x s : bitvector), size x = size s -> 
-      N.to_nat (list2N s) < length s -> 
-      ult_list_big_endian (mk_list_false (N.to_nat (list2N s)) ++
-                            firstn (length x - N.to_nat (list2N s))*) admit. }
+    { apply (@app_ult_list_big_endian 
+              (firstn (length x - list2nat_be_a s) (rev x)) 
+              (firstn (length x - list2nat_be_a s) (rev (bv_not s)))
+              (mk_list_false (list2nat_be_a s))). 
+      unfold list2nat_be_a. rewrite rev_bvnot. rewrite Hx2. rewrite <- Hs2.
+      apply first_bits_ult. unfold size. rewrite rev_length.
+      rewrite Hx2, Hs2. easy. apply case. }
     apply (@ult_list_big_endian_trans 
             (rev t) 
             (mk_list_false (list2nat_be_a s) ++
