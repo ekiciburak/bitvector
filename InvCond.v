@@ -352,19 +352,19 @@ Proof.
     rewrite (@rev_skipn (bv_not s) (list2nat_be_a s) case).
     rewrite Hnots. rewrite <- Hx2. rewrite Hnots in case.
     rewrite <- Hs2 in case. unfold list2nat_be_a in case.
-    assert (ult_list_big_endian 
+    assert (ule_list_big_endian 
               (mk_list_false (list2nat_be_a s) ++
                 firstn (length x - list2nat_be_a s) (rev x))
               (mk_list_false (list2nat_be_a s) ++
                 firstn (length x - list2nat_be_a s) (rev (bv_not s))) = true) as ult.
-    { apply (@app_ult_list_big_endian 
+    { apply (@app_ule_list_big_endian 
               (firstn (length x - list2nat_be_a s) (rev x)) 
               (firstn (length x - list2nat_be_a s) (rev (bv_not s)))
               (mk_list_false (list2nat_be_a s))). 
       unfold list2nat_be_a. rewrite rev_bvnot. rewrite Hx2. rewrite <- Hs2.
-      apply first_bits_ult. unfold size. rewrite rev_length.
+      apply first_bits_ule. unfold size. rewrite rev_length.
       rewrite Hx2, Hs2. easy. apply case. }
-    apply (@ult_list_big_endian_trans 
+    apply (@ult_ule_list_big_endian_trans 
             (rev t) 
             (mk_list_false (list2nat_be_a s) ++
               firstn (length x - list2nat_be_a s) (rev x))

@@ -5076,16 +5076,6 @@ Proof.
 Qed.
 
 
-(* forall x, s, toNat(s) < len(s) -> 
-  first (toNat(s)-len(s)) x 
-          <
-  first (toNat(s)-len(s)) ~(rev s) *)
-Lemma first_bits_ult : forall (x s : bitvector), size x = size s -> 
-  (N.to_nat (list2N s) < length s)%nat -> 
-  ult_list_big_endian 
-    (firstn (length s - N.to_nat (list2N s)) x)
-    (firstn (length s - N.to_nat (list2N s)) (bv_not (rev s))) = true.
-Admitted.
 (* ult-thrms-end *)
 
 
@@ -6062,6 +6052,87 @@ Proof.
   rewrite eqb_refl. unfold ule_list. rewrite rev_mk_list_false.
   rewrite <- rev_length. apply ule_list_big_endian_0.
 Qed.
+
+
+(* forall x, s, toNat(s) < len(s) -> 
+  first (toNat(s)-len(s)) x 
+          <=
+  first (toNat(s)-len(s)) ~(rev s) *)
+
+Lemma skipn_firstn_mlf : forall (s : bitvector) (n : nat), 
+  (n < length s)%nat ->
+  skipn n s = mk_list_false (length s - n) ->
+  firstn (length s - n) (rev s) = mk_list_false (length s - n).
+Proof.
+  induction s.
+  + intros n Hlen. easy.
+  + intros n Hlen Hskip. case n in *.
+    - rewrite Nat.sub_0_r. rewrite skip0 in Hskip. 
+      rewrite Hskip at 2. rewrite rev_mk_list_false. 
+      rewrite Nat.sub_0_r. 
+      rewrite <- (@length_mk_list_false (length (a :: s))) at 1.
+      rewrite firstn_all. easy. 
+    - pose proof Hlen as IHlen. rewrite length_of_tail in IHlen. 
+      apply lt_S_n in IHlen. rewrite length_of_tail in Hskip. 
+      rewrite Nat.sub_succ in Hskip.
+      assert (Hsucc : skipn (S n) (a :: s) = skipn n s) by easy.
+      rewrite Hsucc in Hskip. specialize (@IHs n IHlen Hskip).
+      rewrite length_of_tail. rewrite Nat.sub_succ.
+      assert (Hrev : rev (a :: s) = rev s ++ [a]) by easy.
+      rewrite Hrev. rewrite firstn_app. rewrite IHs.
+      rewrite rev_length. rewrite <- Nat.sub_add_distr.
+      rewrite Nat.add_comm. rewrite Nat.sub_add_distr.
+      rewrite Nat.sub_diag. rewrite Nat.sub_0_l.
+      rewrite firstn_O. rewrite app_nil_r. easy.
+Qed.
+
+(* forall s, toNat(s) < len(s) -> 
+first (length s - N.to_nat (list2N s)) = [0..0] *)
+Lemma first_bits_zero : forall (s : bitvector), 
+  (N.to_nat (list2N s) < length s)%nat ->
+  firstn (length s - N.to_nat (list2N s)) (rev s) = 
+  mk_list_false (length s - N.to_nat (list2N s)).
+Proof.
+  intros s Hlen. 
+  pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
+  apply H.
+Admitted.
+
+Lemma firstn_map : forall (b : bitvector) (n : nat) (f : bool -> bool),
+  firstn n (map f b) = map f (firstn n b).
+Proof.
+  induction b.
+  + intros n f. case n; easy.
+  + case a.
+    - intros n f. simpl. case n.
+      * easy.
+      * intros m. simpl. specialize (@IHb m f). rewrite IHb.
+        easy.
+    - intros n f. simpl. case n.
+      * easy.
+      * intros m. simpl. specialize (@IHb m f). rewrite IHb.
+        easy. 
+Qed.
+
+Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
+  (N.to_nat (list2N s) < length s)%nat -> 
+  ule_list_big_endian 
+    (firstn (length s - N.to_nat (list2N s)) x)
+    (firstn (length s - N.to_nat (list2N s)) (bv_not (rev s))) = true.
+Proof.
+  intros x s Hsize Hlt. pose proof (@first_bits_zero s Hlt) as Hzero.
+  unfold bv_not, bits. rewrite firstn_map. rewrite Hzero.
+  pose proof bv_not_false_true as negb_mlf. 
+  unfold bv_not, bits in negb_mlf. rewrite negb_mlf.
+  assert (len_firstn : length (firstn (length s - N.to_nat (list2N s)) x) = 
+          (length s - N.to_nat (list2N s))%nat).
+  { pose proof (@firstn_length_le bool x (length s - N.to_nat (list2N s))).
+    pose proof Hsize as Hlen. apply size_len_eq in Hlen. rewrite Hlen in H.
+    apply Nat.lt_le_incl in Hlt. apply le_minusni_n in Hlt.
+    apply H in Hlt. apply Hlt. }
+  rewrite <- len_firstn at 2. apply ule_list_big_endian_1.
+Admitted.
+
 
 
 (* ule-thrms-end *)
