@@ -2751,6 +2751,20 @@ Fixpoint pow2 (n: nat): nat :=
     | S n' => (2 * pow2 n')%nat
   end.
 
+Fixpoint l2b (a: list bool) (i: nat) : nat :=
+  match a with
+    | [] => 0
+    | h :: t =>
+        if h then (pow2 i) + l2b t (i + 1) 
+        else l2b t (i + 1)
+    end.
+
+Definition bv2nat_l2b (b : bitvector) : nat :=
+  l2b b 0.
+(* Lemma : l2b sums indices 0 to len a - 1 as coefficients *)
+(* Lemma : if (l2b x) evaluates to m, m < len a - 1, 
+            then x[i] from i = m to len a - 1 are all false *)
+
 Fixpoint _list2nat_be (a: list bool) (n i: nat) : nat :=
   match a with
     | [] => n
@@ -6086,6 +6100,14 @@ Proof.
       rewrite firstn_O. rewrite app_nil_r. easy.
 Qed.
 
+Lemma last_bits_zero : forall (s : bitvector), 
+  (N.to_nat (list2N s) < length s)%nat ->
+  skipn (N.to_nat (list2N s)) s = 
+    mk_list_false (length s - N.to_nat (list2N s)).
+Proof.
+  intros s Hlen.
+Admitted.
+
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
 Lemma first_bits_zero : forall (s : bitvector), 
@@ -6095,8 +6117,8 @@ Lemma first_bits_zero : forall (s : bitvector),
 Proof.
   intros s Hlen. 
   pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
-  apply H.
-Admitted.
+  apply H. apply last_bits_zero. apply Hlen.
+Qed.
 
 Lemma firstn_map : forall (b : bitvector) (n : nat) (f : bool -> bool),
   firstn n (map f b) = map f (firstn n b).
@@ -6131,7 +6153,7 @@ Proof.
     apply Nat.lt_le_incl in Hlt. apply le_minusni_n in Hlt.
     apply H in Hlt. apply Hlt. }
   rewrite <- len_firstn at 2. apply ule_list_big_endian_1.
-Admitted.
+Qed.
 
 
 
