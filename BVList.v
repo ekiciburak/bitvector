@@ -6115,7 +6115,10 @@ Lemma first_bits_zero : forall (s : bitvector),
   firstn (length s - N.to_nat (list2N s)) (rev s) = 
   mk_list_false (length s - N.to_nat (list2N s)).
 Proof.
-  intros s Hlen. 
+  intros s Hlen.
+  (*induction (length s - N.to_nat (list2N s))%nat.
+  + easy.
+  + *)
   pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
   apply H. apply last_bits_zero. apply Hlen.
 Qed.
