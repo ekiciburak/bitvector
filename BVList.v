@@ -7451,6 +7451,7 @@ Proof.
 Qed.
 
 
+(* b < toBV(len_b) -> b != [0...0] -> ([0...0] << b) != [0...0] *)
 Lemma mk_list_false_true_app : forall x y : nat, (y < x)%nat ->
   mk_list_false y ++ mk_list_true (x - y) <> mk_list_false x.
 Proof.
