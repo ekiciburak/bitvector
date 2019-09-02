@@ -6105,23 +6105,117 @@ Lemma last_bits_zero : forall (s : bitvector),
   skipn (N.to_nat (list2N s)) s = 
     mk_list_false (length s - N.to_nat (list2N s)).
 Proof.
-  intros s Hlen.
+  intros s.
 Admitted.
+
+Lemma list2N_0_implies_mlf : forall (s : bitvector),
+  N.to_nat (list2N s) = 0%nat -> s = mk_list_false (length s).
+Proof.
+  intros s H. induction s.
+  + easy.
+  + case a in *.
+    - simpl in H. contradict H. case (list2N s); easy.
+    - simpl in H. 
+      assert (Hdouble : forall (n : N), N.double n = 0 -> n = 0).
+      { Reconstr.scrush. }
+      apply Nat2N.inj_iff in H. rewrite N2Nat.id in H.
+      specialize (@Hdouble (list2N s) H). 
+      apply N2Nat.inj_iff in Hdouble. specialize (@IHs Hdouble). 
+      Reconstr.scrush.
+Qed.
+
+Lemma firstn_succ_mlf : forall (s : bitvector) (n : nat),
+  firstn (S n) s = mk_list_false (S n) -> 
+  firstn  n s = mk_list_false n.
+Proof.
+  induction s.
+  + intros n H1st. easy.
+  + Reconstr.scrush.
+Qed.
 
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
+(* forall s, k < l -> first (l - k) s = [0...0] *)
 Lemma first_bits_zero : forall (s : bitvector), 
   (N.to_nat (list2N s) < length s)%nat ->
   firstn (length s - N.to_nat (list2N s)) (rev s) = 
   mk_list_false (length s - N.to_nat (list2N s)).
 Proof.
-  intros s Hlen.
-  (*induction (length s - N.to_nat (list2N s))%nat.
+  (* Approach 1 - Induction on (l - k): *)
+  (* intros s. induction (length s - N.to_nat (list2N s))%nat.
   + easy.
-  + *)
-  pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
+  + intros Hlen. specialize (@IHn Hlen). *)
+  (* The issue here is as follows:
+     Let l = (length s), k = (list2N s)
+     We want to do structural induction on l - k
+     so that base case which is easy is:
+     - k < l -> firstn 0 (rev s) = MLF 0
+     - in the inductive case, we want to assume
+       firstn l - (k + 1) bits are 0 and then prove 
+       firstn l - k bits are 0.
+     Doing mathematical induction on (l - k) doesn't 
+     achieve this because it just considers 
+     (l - k) = 0 for base case, (l - k) = n for IH, and 
+     (l - k) = S n as the inductive proof obligation *)
+  
+  (* Approach 2 - Induction on l first, then case k: *)
+  (*intros s. pose proof (@list2N_0_implies_mlf s) as list2Ns.
+  induction (length s).
+  + intros Hlt. inversion Hlt.
+  + intros Hlt. case_eq (N.to_nat (list2N s)).
+    - intros case. rewrite case in *. rewrite Nat.sub_0_r in *.
+      apply Nat2N.inj_iff in case. rewrite N2Nat.id in case. 
+      simpl in case. specialize (@list2Ns case).
+      apply rev_func in list2Ns. 
+      rewrite rev_mk_list_false in list2Ns.
+      rewrite list2Ns. rewrite <- (@length_mk_list_false (S n)) at 1.
+      rewrite firstn_all. easy.
+    - intros m. intros case. rewrite case in *.*)
+  (* Multiple issues:
+     1. We are doing induction on length s.
+        We have a lemma "H: list2N s = 0 -> s = mlf (length s)".
+        With the induction, we want the equality of each 
+        case of induction. For instance, in the base case
+        we want as a hypothesis that "lenght s = 0".
+        Since there doesn't seem to be a way to do this, 
+        I added H to the hypothesis so that induction changes
+        the occurence of length s in it. However, this
+        adds H to the inductive hypothesis which isn't possible
+        to prove.
+     2. Assuming we didn't have the problem above, the 
+        inductive hypothesis would be (S m < n) -> blah.
+        We also have (S m < S n) and our goal is blah2.
+        We need (S m < n) so we can use blah to prove blah2.
+        But we can't get (S m < n) from what we have. *)
+
+  (* Approach 3 - Induction on l first, then induction k: *)
+  (*intros s. induction (length s).
+  + intros Hlt. inversion Hlt.
+  + intros Hlt. induction (N.to_nat (list2N s)).
+    - rewrite Nat.sub_0_r in *. *)
+  (* The issue here is that we don't have the value of 
+     induction in the hypothesis, we are only able to 
+     do that with case. *)
+  
+  (* Approach 4 - Induction on k first, then case l: *)
+  intros s. induction (N.to_nat (list2N s)).
+  + intros Hlt. rewrite Nat.sub_0_r. case_eq (length s).
+    - easy.
+    - intros n case. admit.
+  + intros Hlt. pose proof Hlt as Hlt2. 
+    apply Nat.lt_succ_l in Hlt2. specialize (@IHn Hlt2).
+    case_eq (length s).
+    - intros case. easy.
+    - intros m case. rewrite case in *.
+    assert ((S m - n)%nat = S (S m - S n)).
+    { rewrite Nat.sub_succ. apply lt_n_Sm_le in Hlt2. 
+      apply Nat.sub_succ_l. apply Hlt2. }
+    rewrite H in IHn. apply firstn_succ_mlf. apply IHn.
+(* This part reduces the proof goal to that of last_bits_zero
+  intros s Hlen. pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
   apply H. apply last_bits_zero. apply Hlen.
-Qed.
+Qed.*)
+Admitted.
 
 Lemma firstn_map : forall (b : bitvector) (n : nat) (f : bool -> bool),
   firstn n (map f b) = map f (firstn n b).
