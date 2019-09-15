@@ -6133,6 +6133,33 @@ Proof.
   + Reconstr.scrush.
 Qed.
 
+(* list2N s = 0 -> s = [00...0]*)
+Lemma list2N_zero_implies_mlf : forall (s : bitvector), 
+  0 = list2N s -> s = mk_list_false (length s).
+Proof.
+  intros s zero. induction s. 
+  + easy. 
+  + unfold list2N in zero. case a in *.
+    - assert (contr: forall n : N, N.succ_double n <> 0).
+      { induction n; easy. }
+      fold list2N in zero. specialize (@contr (list2N s)).
+      symmetry in zero. specialize (@contr zero). easy.
+    - fold list2N in zero. 
+      assert (double_0 : 0 = N.double 0) by easy.
+      rewrite double_0 in zero. apply N.double_inj in zero.
+      specialize (@IHs zero). rewrite IHs.
+      rewrite length_of_tail. simpl.
+      rewrite length_mk_list_false. easy.
+Qed.
+
+Lemma firstn_mlf : forall n : nat, 
+  firstn n (mk_list_false n) = mk_list_false n.
+Proof.
+  induction n.
+  + easy.
+  + simpl. rewrite IHn. easy.
+Qed. 
+
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
 (* forall s, k < l -> first (l - k) s = [0...0] *)
@@ -6198,6 +6225,14 @@ Proof.
      do that with case. *)
   
   (* Approach 4 - Induction on k first, then case l: *)
+  (* Here the problem is that in the base case, 
+     Coq sets all occurrences of (N.to_nat (list2N s)) to 
+     0. But we want to retain the fact that "(N.to_nat (list2N s)) = 0"
+     so that we can use that to prove that firstn n s = mk_list_false n
+     which is currently admitted.
+     If we did case_eq on (N.to_nat (list2N s)) we would retain this
+     fact but we wouldn't have an induction hypothesis, which 
+     is integral for the second case. *) 
   intros s. induction (N.to_nat (list2N s)).
   + intros Hlt. rewrite Nat.sub_0_r. case_eq (length s).
     - easy.
@@ -6211,6 +6246,28 @@ Proof.
     { rewrite Nat.sub_succ. apply lt_n_Sm_le in Hlt2. 
       apply Nat.sub_succ_l. apply Hlt2. }
     rewrite H in IHn. apply firstn_succ_mlf. apply IHn.
+
+
+(* To overcome the issue from above, here we use a trick suggested 
+   on StackOverflow but this gives us a problem in the 
+   inductive step as mentioned below.
+  intros s. generalize (eq_refl (N.to_nat (list2N s))).
+  generalize (N.to_nat (list2N s)) at 1.
+  induction n.
+  + intros H Hlt. rewrite <- H. rewrite Nat.sub_0_r. 
+    case_eq (length s).
+    - easy.
+    - intros n case. apply Nat2N.inj_iff in H. 
+      rewrite N2Nat.id in H. simpl in H. 
+      pose proof (@list2N_zero_implies_mlf s H) as list2N_zero_implies_mlf. 
+      apply rev_func in list2N_zero_implies_mlf.
+      rewrite rev_mk_list_false in list2N_zero_implies_mlf.
+      rewrite list2N_zero_implies_mlf. rewrite case. 
+      apply firstn_mlf.
+  + intros H Hlt. rewrite <- H in Hlt. pose proof Hlt as Hlt2. 
+    apply Nat.lt_succ_l in Hlt2. 
+    Now the problem here is that we have S n = N.to_nat (list2N s)
+    but we need to show n = N.to_nat (list2N s) to access the IH*)
 (* This part reduces the proof goal to that of last_bits_zero
   intros s Hlen. pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
   apply H. apply last_bits_zero. apply Hlen.
