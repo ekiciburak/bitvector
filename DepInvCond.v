@@ -3,6 +3,232 @@ Require Import List Bool NArith Psatz ZArith Nnat.
 
 Include RAW2BITVECTOR(RAWBITVECTOR_LIST).
 
+Ltac match_hyp h :=
+  let rec hlp :=
+    match goal with
+      | [ H: _ |- _ ] => specialize (h H) || (revert H; hlp; intro H)
+      | [ H: _ |- _] => apply h in H || (revert H; hlp; intro H)
+      | _ => fail "no such specialization possible"
+    end 
+  in hlp.
+
+
+Ltac downcast :=
+  repeat
+    match goal with
+      | [ |- forall n : N, _]           => intro n
+      | [ |- forall s : bitvector _, _] => intro s
+      | [ |- _ -> _ ]                   =>  intro
+      | [ |- _ <-> _ ]                  => split; intro
+      | [ s: bitvector _ |- _ ]         => destruct s as (s, ?H); cbn in *
+      | [ H: _ /\ _ |- _ ]              => destruct H as (?H, ?H)
+      | [ H: exists s, _ |- _ ]         => destruct H as (?s, ?H) 
+      | [ H: bv_eq _ _ = true  |- _ ]   => unfold bv_eq in H;
+                                           rewrite RAWBITVECTOR_LIST.bv_eq_reflect in H
+      (** bv_neg *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_neg a) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  destruct (bvneg_eq n t Ht) as (?Hx1, ?Hx2);
+                  cbn in *
+        | [ |- context [bv_eq (bv_neg _) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvneg_eq _ t Ht) as (?Hx1, ?Hx2)
+
+      (** bv_not *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_not a) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  destruct (bvnot_eq n t Ht) as (?Hx1, ?Hx2);
+                  cbn in *
+        | [ |- context [bv_eq (bv_not _) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvnot_eq _ t Ht) as (?Hx1, ?Hx2)
+
+      (** bv_and *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_and a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  destruct (bvand_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  cbn in *
+        | [ |- context [bv_eq (bv_and _ {| bv := ?s; wf := ?Hs |}) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvand_eq _ s t Hs Ht) as (?Hx1, ?Hx2)
+
+      (** bv_or *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_or a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  destruct (bvor_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  cbn in *
+        | [ |- context [bv_eq (bv_or _ {| bv := ?s; wf := ?Hs |}) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvor_eq _ s t Hs Ht) as (?Hx1, ?Hx2)
+
+      (** bv_shl *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  destruct (bvshl_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  cbn in *
+        | [ |- context [bv_eq (bv_shl _ {| bv := ?s; wf := ?Hs |}) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvshl_eq _ s t Hs Ht) as (?Hx1, ?Hx2)
+
+      (** bv_shl ltr <> *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = false] ]  =>
+                  let Hx1 := fresh "Hx1" in
+                  specialize (bvshl_neq n s t Hs Ht); intro Hx1;
+                  unfold bv_ult, bv_ashr_a, bv_eq in *;
+                  rewrite Hs, Ht in Hx1
+
+      (** bv_shl rtl <> *)
+      | [ H: bv_eq (bv_shl _ {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = false |- _ ] =>
+                  let Hx1 := fresh "Hx1" in
+                  specialize (bvshl_neq _ s t Hs Ht); intro Hx1;
+                  unfold bv_ult, bv_ashr_a, bv_eq in *;
+                  rewrite Hs, Ht in Hx1
+
+      (** bv_ugt *)
+       | [ |- context[exists (a: bitvector ?n), 
+             bv_ugt (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  destruct (bvshl_ugt n s t Hs Ht) as (?Hx1, ?Hx2);
+                  unfold bv_ult, bv_shl;
+                  cbn in *; 
+                  rewrite Hs in Hx1
+
+         | [ |- context [bv_ult {| bv := ?t; wf := ?Ht |} 
+                        (bv_shl (bv_not (zeros ?n)) {| bv := ?s; wf := ?Hs |}) = true] ] =>
+                  destruct (bvshl_ugt n s t Hs Ht) as (?Hx1, ?Hx2);
+                  unfold bv_ult, bv_shl;
+                  cbn in *; 
+                  rewrite Hs in Hx2
+
+      (** bv_uge *)
+       | [ |- context[exists (a: bitvector ?n), 
+             bv_uge (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  destruct (bvshl_uge n s t Hs Ht) as (?Hx1, ?Hx2);
+                  unfold bv_uge, bv_shl;
+                  cbn in *; 
+                  rewrite Hs in Hx1
+
+         | [ |- context [bv_uge (bv_shl (bv_not (zeros ?n)) {| bv := ?s; wf := ?Hs |}) 
+                                {| bv := ?t; wf := ?Ht |} = true] ] =>
+                  destruct (bvshl_uge n s t Hs Ht) as (?Hx1, ?Hx2);
+                  unfold bv_uge, bv_shl;
+                  cbn in *; 
+                  rewrite Hs in Hx2
+
+      | _ => fail "no such non-dep proof found"
+      end.
+
+Ltac exist_hyp :=
+  let rec hlp :=
+    match goal with
+      | [H: RAWBITVECTOR_LIST.bitvector |-exists (a: RAWBITVECTOR_LIST.bitvector), _  ] => 
+               try (exists H; easy) || (clear H; hlp)
+      | [H:  RAWBITVECTOR_LIST.size _ = _ |- exists (_ : bitvector _), _  ] => 
+               (try (exists (MkBitvector H); easy)) || 
+               (try (exists (MkBitvector H); now rewrite RAWBITVECTOR_LIST.bv_eq_reflect)) ||
+               (clear H; hlp)
+      | [H:  exists x : RAWBITVECTOR_LIST.bitvector, _ /\ _ |- exists (_ : bitvector _), _  ] => 
+               destruct H as (x, (?HL, ?HR)); hlp
+      | _ => fail "no such specialization possible"
+    end 
+  in hlp.
+
+(* ~0 << s >=u t <=> x << s >= t *)
+Theorem bvshl_uge_tac : forall (n : N), forall (s t : bitvector n), iff
+    (bv_uge (bv_shl (bv_not (zeros n)) s) t = true)
+    (exists (x : bitvector n), (bv_uge (bv_shl x s) t = true)).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - apply Hx2. exist_hyp.
+Qed.
+
+(* (t <u (~0 << s)) <=> (exists x, x << s >u t) *)
+Theorem bvshl_ugt_tac : forall (n : N), forall (s t : bitvector n),
+  iff
+    (bv_ult t (bv_shl (bv_not (zeros n)) s) = true)
+    (exists (x : bitvector n), (bv_ugt (bv_shl x s) t = true)).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - apply Hx2. exist_hyp.
+Qed.
+
+Theorem bvshl_neq_tac: forall (n : N), forall (s t : bitvector n), 
+    (exists (x : bitvector n), bv_eq (bv_shl x s) t = false) <->
+    bv_eq t (zeros n) = false \/ 
+    bv_ult s (nat2bv (N.to_nat n) n) = true.
+Proof. downcast.
+       - apply Hx1. exist_hyp.
+       - match_hyp Hx1. exist_hyp.
+Qed.
+
+Theorem bvand_eq_tac: forall (n : N), forall (s t : bitvector n), 
+  iff 
+    (bv_eq (bv_and t s) t = true)
+    (exists (x : bitvector n), bv_eq (bv_and x s) t = true).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - apply Hx2. exist_hyp.
+Qed.
+
+Theorem bvor_eq_tac: forall (n : N), forall (s t : bitvector n), 
+   iff 
+    (bv_eq (bv_or t s) t = true)
+    (exists (x : bitvector n), bv_eq (bv_or x s) t = true).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - apply Hx2. exist_hyp.
+Qed.
+
+Theorem bvshl_eq_tac: forall (n : N), forall (s t : bitvector n),
+    iff
+     (bv_eq (bv_shl (bv_shr t s) s) t = true)
+     (exists (x : bitvector n), bv_eq (bv_shl x s) t = true).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - apply Hx2. exist_hyp.
+Qed.
+
+Theorem bvneg_eq_tac: forall (n : N), forall (t : bitvector n),
+  iff 
+    True 
+    (exists (x : bitvector n), bv_eq (bv_neg x) t = true).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - easy.
+Qed.
+
+Theorem bvnot_eq_tac: forall (n : N), forall (t : bitvector n),
+  iff
+    True
+    (exists (x : bitvector n), bv_eq (bv_not x) t = true).
+Proof. downcast.
+       - match_hyp Hx1. exist_hyp.
+       - easy.
+Qed. 
 
 (*------------------------------Neg------------------------------*)
 (* -x = t <=> True *)
@@ -43,145 +269,6 @@ Proof.
 Qed.
 
 (*------------------------------------------------------------*)
-
-
-Ltac match_hyp h :=
-  let rec hlp :=
-    match goal with
-      | [ H: _ = _ |- _ ] => specialize (h H) || (revert H; hlp; intro H)
-      | [ H: _ \/ _ |- _ ] => specialize (h H) || (revert H; hlp; intro H)
-      | _ => fail "no such specialization possible"
-    end 
-  in hlp.
-
-
-Ltac exists_try :=
-  let rec hlp :=
-    match goal with
-      | [H: RAWBITVECTOR_LIST.bitvector |-
-            exists (a: RAWBITVECTOR_LIST.bitvector), _  ] => 
-          idtac "case0";
-          try (exists H; easy) || (clear H; hlp)
-      | [H:  RAWBITVECTOR_LIST.size _ = _ |- exists (_ : bitvector _), _  ] => 
-          idtac "case";
-           try (now exists (MkBitvector H)) || (clear H; hlp)
-      | _ => fail "no such specialization possible"
-    end 
-  in hlp.
-
-Ltac downcast :=
-  repeat
-    match goal with
-      | [ |- forall n : N, _]           => intro n
-      | [ |- forall s : bitvector _, _] => intro s
-      | [ |- _ -> _ ]                   =>  intro
-      | [ |- _ <-> _ ]                  => split; intro
-      | [ s: bitvector _ |- _ ]         => destruct s as (s, ?H); cbn in *
-      | [ H: _ /\ _ |- _ ]              => destruct H as (?H, ?H)
-(*       | [ H: _ \/ _ |- _ ]              => destruct H as [?H | ?H] *)
-      | [ H: exists s, _ |- _ ]         => destruct H as (?s, ?H) 
-      | [ H: bv_eq _ _ = true  |- _ ]   => unfold bv_eq in H;
-                                           rewrite RAWBITVECTOR_LIST.bv_eq_reflect in H
-      (** bv_and *)
-      | [ |- context[exists (a: bitvector ?n), 
-             bv_eq (bv_and a {| bv := ?s; wf := ?Hs |}) 
-                   {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails(
-                  unfold bv_eq, bv_and;
-                  destruct (bvand_eq n s t Hs Ht) as (?Hx1, ?Hx2);
-                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
-                  exists (MkBitvector Hbv);
-                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
-                )
-
-        | [ |- context [bv_eq (bv_and _ {| bv := ?s; wf := ?Hs |}) 
-                              {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails( 
-                  unfold bv_eq;
-                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
-                  destruct (bvand_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
-                  apply Hx2; exists_try
-                )
-      (** bv_or *)
-      | [ |- context[exists (a: bitvector ?n), 
-             bv_eq (bv_or a {| bv := ?s; wf := ?Hs |}) 
-                   {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails(
-                  unfold bv_eq, bv_or;
-                  destruct (bvor_eq n s t Hs Ht) as (?Hx1, ?Hx2);
-                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
-                  exists (MkBitvector Hbv);
-                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
-                )
-      | [ |- context [bv_eq (bv_or _ {| bv := ?s; wf := ?Hs |}) 
-                              {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails(
-                  unfold bv_eq;
-                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
-                  destruct (bvor_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
-                  apply Hx2; exists_try
-                )
-
-      (** bv_shl = *)
-      | [ |- context[exists (a: bitvector ?n), 
-             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
-                   {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails(
-                  unfold bv_eq, bv_or;
-                  destruct (bvshl_eq n s t Hs Ht) as (?Hx1, ?Hx2);
-                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
-                  exists (MkBitvector Hbv);
-                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
-                )
-      | [ |- context [bv_eq (bv_shl _ {| bv := ?s; wf := ?Hs |}) 
-                            {| bv := ?t; wf := ?Ht |} = true] ] =>
-                assert_fails(
-                  unfold bv_eq;
-                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
-                  destruct (bvshl_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
-                  apply Hx2; exists_try
-                )
-
-      (** bv_shl <> *)
-      | [ |- context[exists (a: bitvector ?n), 
-             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
-                   {| bv := ?t; wf := ?Ht |} = false] ] =>
-                assert_fails(
-                  let Hx1 := fresh "Hx1" in
-                  specialize (bvshl_neq n s t Hs Ht); intro Hx1;
-                  unfold bv_ult, bv_ashr_a, bv_eq in *;
-                  rewrite Hs, Ht in Hx1;
-                  destruct Hx1 as (?Hx1, ?Hx2);
-                  match_hyp Hx1; downcast; exists_try
-                )
-    end.
-
-(* Theorem bvand_eq : forall (n : N), forall (s t : bitvector n), 
-  iff 
-    (bv_eq (bv_and t s) t = true)
-    (exists (x : bitvector n), bv_eq (bv_and x s) t = true).
-Proof. downcast. Qed.
-
-Theorem bvshl_neq_ltra: forall (n : N), forall (s t : bitvector n), 
-    bv_eq t (zeros n) = false \/ 
-     bv_ult s (nat2bv (N.to_nat n) n) = true ->
-    (exists (x : bitvector n), bv_eq (bv_shl x s) t = false).
-Proof. downcast. Qed.
-
-
-Theorem bvor_eq : forall (n : N), forall (s t : bitvector n), 
-   iff 
-    (bv_eq (bv_or t s) t = true)
-    (exists (x : bitvector n), bv_eq (bv_or x s) t = true).
-Proof. downcast. Qed.
-
-Theorem bvshl_eq : forall (n : N), forall (s t : bitvector n),
-    iff
-     (bv_eq (bv_shl (bv_shr t s) s) t = true)
-     (exists (x : bitvector n), bv_eq (bv_shl x s) t = true).
-Proof. downcast. Qed. *)
-
-
 
 (*------------------------------And------------------------------*)
 (* t & s = t <=> (exists x, x & s = t) *)
