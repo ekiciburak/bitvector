@@ -30,7 +30,9 @@ Local Open Scope bool_scope.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-From Hammer Require Import Hammer Reconstr.
+(* From Hammer Require Import Hammer Reconstr. *)
+
+From BV Require Import Reconstr.
 
 (* We temporarily assume proof irrelevance to handle dependently typed
    bit vectors *)

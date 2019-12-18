@@ -13,7 +13,7 @@ Theorem bvneg_eq : forall (n : N), forall (t : bitvector n),
     (exists (x : bitvector n), bv_eq (bv_neg x) t = true).
 Proof.
   intros n t. unfold bv_eq, bv_neg in *.  cbn in *. split.
-  + intros H. destruct t as (t, Ht). 
+  + intros H. destruct t as (t, Ht).
     specialize (bvneg_eq n t Ht); intros.
     destruct H0 as (Hltr, Hrtl).
     specialize (@Hltr H). destruct Hltr as (x, (Hx, Hltr)). 
@@ -43,6 +43,144 @@ Proof.
 Qed.
 
 (*------------------------------------------------------------*)
+
+
+Ltac match_hyp h :=
+  let rec hlp :=
+    match goal with
+      | [ H: _ = _ |- _ ] => specialize (h H) || (revert H; hlp; intro H)
+      | [ H: _ \/ _ |- _ ] => specialize (h H) || (revert H; hlp; intro H)
+      | _ => fail "no such specialization possible"
+    end 
+  in hlp.
+
+
+Ltac exists_try :=
+  let rec hlp :=
+    match goal with
+      | [H: RAWBITVECTOR_LIST.bitvector |-
+            exists (a: RAWBITVECTOR_LIST.bitvector), _  ] => 
+          idtac "case0";
+          try (exists H; easy) || (clear H; hlp)
+      | [H:  RAWBITVECTOR_LIST.size _ = _ |- exists (_ : bitvector _), _  ] => 
+          idtac "case";
+           try (now exists (MkBitvector H)) || (clear H; hlp)
+      | _ => fail "no such specialization possible"
+    end 
+  in hlp.
+
+Ltac downcast :=
+  repeat
+    match goal with
+      | [ |- forall n : N, _]           => intro n
+      | [ |- forall s : bitvector _, _] => intro s
+      | [ |- _ -> _ ]                   =>  intro
+      | [ |- _ <-> _ ]                  => split; intro
+      | [ s: bitvector _ |- _ ]         => destruct s as (s, ?H); cbn in *
+      | [ H: _ /\ _ |- _ ]              => destruct H as (?H, ?H)
+(*       | [ H: _ \/ _ |- _ ]              => destruct H as [?H | ?H] *)
+      | [ H: exists s, _ |- _ ]         => destruct H as (?s, ?H) 
+      | [ H: bv_eq _ _ = true  |- _ ]   => unfold bv_eq in H;
+                                           rewrite RAWBITVECTOR_LIST.bv_eq_reflect in H
+      (** bv_and *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_and a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails(
+                  unfold bv_eq, bv_and;
+                  destruct (bvand_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
+                  exists (MkBitvector Hbv);
+                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
+                )
+
+        | [ |- context [bv_eq (bv_and _ {| bv := ?s; wf := ?Hs |}) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails( 
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvand_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
+                  apply Hx2; exists_try
+                )
+      (** bv_or *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_or a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails(
+                  unfold bv_eq, bv_or;
+                  destruct (bvor_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
+                  exists (MkBitvector Hbv);
+                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
+                )
+      | [ |- context [bv_eq (bv_or _ {| bv := ?s; wf := ?Hs |}) 
+                              {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails(
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvor_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
+                  apply Hx2; exists_try
+                )
+
+      (** bv_shl = *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails(
+                  unfold bv_eq, bv_or;
+                  destruct (bvshl_eq n s t Hs Ht) as (?Hx1, ?Hx2);
+                  match_hyp Hx1; destruct Hx1 as (?bv, (?Hbv, ?p));
+                  exists (MkBitvector Hbv);
+                  now rewrite RAWBITVECTOR_LIST.bv_eq_reflect
+                )
+      | [ |- context [bv_eq (bv_shl _ {| bv := ?s; wf := ?Hs |}) 
+                            {| bv := ?t; wf := ?Ht |} = true] ] =>
+                assert_fails(
+                  unfold bv_eq;
+                  rewrite RAWBITVECTOR_LIST.bv_eq_reflect;
+                  destruct (bvshl_eq _ s t Hs Ht) as (?Hx1, ?Hx2);
+                  apply Hx2; exists_try
+                )
+
+      (** bv_shl <> *)
+      | [ |- context[exists (a: bitvector ?n), 
+             bv_eq (bv_shl a {| bv := ?s; wf := ?Hs |}) 
+                   {| bv := ?t; wf := ?Ht |} = false] ] =>
+                assert_fails(
+                  let Hx1 := fresh "Hx1" in
+                  specialize (bvshl_neq n s t Hs Ht); intro Hx1;
+                  unfold bv_ult, bv_ashr_a, bv_eq in *;
+                  rewrite Hs, Ht in Hx1;
+                  destruct Hx1 as (?Hx1, ?Hx2);
+                  match_hyp Hx1; downcast; exists_try
+                )
+    end.
+
+(* Theorem bvand_eq : forall (n : N), forall (s t : bitvector n), 
+  iff 
+    (bv_eq (bv_and t s) t = true)
+    (exists (x : bitvector n), bv_eq (bv_and x s) t = true).
+Proof. downcast. Qed.
+
+Theorem bvshl_neq_ltra: forall (n : N), forall (s t : bitvector n), 
+    bv_eq t (zeros n) = false \/ 
+     bv_ult s (nat2bv (N.to_nat n) n) = true ->
+    (exists (x : bitvector n), bv_eq (bv_shl x s) t = false).
+Proof. downcast. Qed.
+
+
+Theorem bvor_eq : forall (n : N), forall (s t : bitvector n), 
+   iff 
+    (bv_eq (bv_or t s) t = true)
+    (exists (x : bitvector n), bv_eq (bv_or x s) t = true).
+Proof. downcast. Qed.
+
+Theorem bvshl_eq : forall (n : N), forall (s t : bitvector n),
+    iff
+     (bv_eq (bv_shl (bv_shr t s) s) t = true)
+     (exists (x : bitvector n), bv_eq (bv_shl x s) t = true).
+Proof. downcast. Qed. *)
+
 
 
 (*------------------------------And------------------------------*)
