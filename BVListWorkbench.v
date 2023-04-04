@@ -8127,7 +8127,7 @@ Qed.
 
 Lemma first_bits_zeroA : forall (s : bitvector), 
   (length s >= (list2NR s 0))%nat ->
-  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). Admitted.
+  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). 
 Proof. intros s H.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
@@ -8142,7 +8142,7 @@ Proof. intros s H.
            rewrite <- !plus_n_O in *.
            simpl in *.
            rewrite <- firstN_app.
-           specialize (firstN_app2 ((length xs) - (list2NR xs 0))%nat
+           specialize (@firstN_app2 ((length xs) - (list2NR xs 0))%nat
                                    (list2NR xs 0) xs); intro HH.
 (*
 In environment
@@ -8185,10 +8185,10 @@ The term "(length xs - list2NR xs 0)%nat" has type
            * rewrite H0 in *.
              simpl.
              rewrite <- firstN_app.
-             assert((length xs - (n0 + S n0)) = ((length xs - S n0) - n0)).
+             assert((length xs - (n + S n))%nat = ((length xs - S n) - n)%nat).
              { simpl. lia. }
              rewrite H1.
-             specialize (firstN_app2 (length xs - S n0) (n0) xs); intro HH.
+             specialize (@firstN_app2 (length xs - S n) n xs); intro HH.
              apply HH.
              lia.
              apply IHs.
@@ -8200,7 +8200,7 @@ Lemma first_bits_zero : forall (s : bitvector),
   firstn (length s - N.to_nat (list2N s)) (rev s) = mk_list_false (length s - N.to_nat (list2N s)).
 Proof. intros s H.
        rewrite <- list2NR_eq2.
-       specialize(first_bits_zeroA (rev s)); intro HH.
+       specialize(@first_bits_zeroA (rev s)); intro HH.
 (*
 In environment
 s : bitvector
@@ -8216,7 +8216,7 @@ Qed.
 (* Burak's solution *)
 
 
-
+(*
 
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
@@ -8335,6 +8335,7 @@ Qed.*)
   apply Nat.ltb_lt in powgt. assert (forall n : nat, (n < 2^n)%nat).
   { Search ((_ < _) -> _). apply N.size_gt. Search (_ < 2^_). Print N.size. (* k < 2^l*)*)
 Admitted.
+*)
 
 Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
   (N.to_nat (list2N s) < length s)%nat -> 
