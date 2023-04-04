@@ -290,7 +290,7 @@ Proof. intros.
        easy. easy.
 Qed.
 
-(* (exists x, (x >> s) >u t) <= (t <u (~s >> s)) *)
+(* (exists x, (x >> s) >u t) => (t <u (~s >> s)) *)
 Theorem bvshr_ugt_ltr : forall (n : N), forall (s t : bitvector), 
   (size s) = n -> (size t) = n ->
     (exists (x : bitvector), (size x = n) /\ bv_ugt (bv_shr_a x s) t = true) ->

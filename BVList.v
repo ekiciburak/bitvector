@@ -4950,6 +4950,7 @@ Proof.
       intros Hxy. inversion Hxy. easy. 
 Qed.
 
+(*---------- Complete these and we have the missing proof from PxTP *)
 Lemma skipn_b_zeros_aux : forall (b : bitvector), 
   lt (N.to_nat (list2N b)) (length b) -> 
   list2N b = list2N (firstn ((N.to_nat (list2N b))) b).
@@ -4974,6 +4975,7 @@ Proof.
   apply eq_bv_not in skipn_b_zeros. rewrite bv_not_false in skipn_b_zeros.
   rewrite skipn_bv_not in skipn_b_zeros. apply skipn_b_zeros.
 Qed.
+(*----------*)
 
 Lemma N_ule_implies_bv_ule : forall (m n : N), m <= n -> 
   ule_list_big_endian (N2list m (N.to_nat (N.size m))) 
