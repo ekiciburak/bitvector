@@ -3882,7 +3882,7 @@ Proof. intro a.
        induction a as [ | xa xsa IHa ].
        - intros. simpl. easy.
        - intros.
-         case b in *. simpl. rewrite IHa. simpl. omega.
+         case b in *. simpl. rewrite IHa. simpl. reflexivity.
          simpl. case (k - 1 <? 0)%Z; simpl; now rewrite IHa.
 Qed. 
 
@@ -3896,8 +3896,8 @@ Lemma prop_mult_bool_step: forall k' a b res k,
                        length (mult_bool_step a b res k k') = (length res)%nat.
 Proof. intro k'.
        induction k'.
-       - intros. simpl. rewrite prop_mult_bool_step_k_h_len. simpl. omega.
-       - intros. simpl. rewrite IHk'. rewrite prop_mult_bool_step_k_h_len. simpl; omega.
+       - intros. simpl. rewrite prop_mult_bool_step_k_h_len. simpl. reflexivity.
+       - intros. simpl. rewrite IHk'. rewrite prop_mult_bool_step_k_h_len. reflexivity.
 Qed.
 
 Lemma and_with_bool_len: forall a b, length (and_with_bool a (nth 0 b false)) = length a.
