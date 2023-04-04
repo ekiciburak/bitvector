@@ -7935,6 +7935,289 @@ Proof.
   + intros H. unfold size. rewrite H. apply eq_refl.
 Qed.
 
+Lemma list2N_0_implies_mlf : forall (s : bitvector),
+  N.to_nat (list2N s) = 0%nat -> s = mk_list_false (length s).
+Proof.
+  intros s H. induction s.
+  + easy.
+  + case a in *.
+    - simpl in H. contradict H. case (list2N s); easy.
+    - simpl in H. 
+      assert (Hdouble : forall (n : N), N.double n = 0 -> n = 0).
+      { Reconstr.scrush. }
+      apply Nat2N.inj_iff in H. rewrite N2Nat.id in H.
+      specialize (@Hdouble (list2N s) H). 
+      apply N2Nat.inj_iff in Hdouble. specialize (@IHs Hdouble). 
+      Reconstr.scrush.
+Qed.
+
+
+
+
+
+
+(* Burak's solution *)
+Fixpoint list2NR (a: list bool) (n: nat) :=
+  match a with
+    | []      => n
+    | x :: xs => if x then list2NR xs (2 * n + 1) else list2NR xs (2 * n)
+  end.
+
+Lemma true_list2NR:
+  forall (s: bitvector),
+  list2NR (true :: s) 0 = list2NR s 1.
+Proof. simpl. easy. Qed.
+
+Lemma rl_fact2: forall (s: bitvector) (a: bool),
+  s <> nil ->
+  removelast (a :: s) = a :: removelast s.
+Proof. intro s.
+       induction s as [ | x xs IHs] using rev_ind.
+       - simpl. easy.
+       - intros a H. simpl.  
+         case_eq (xs ++ [x]); intros.
+         + subst. easy.
+         + easy.
+Qed.
+
+Lemma list2NR_eqT:
+  forall(s: bitvector) n,
+  list2NR (s ++ [true]) n = S (2 * list2NR s n).
+Proof. intro s.
+       induction s; intros.
+       - simpl. lia.
+       - simpl in *.
+         rewrite <- !plus_n_O in *.
+         case_eq a; intros.
+         + rewrite IHs. lia.
+         + rewrite IHs. lia.
+Qed.
+
+Lemma list2NR_eqF:
+  forall(s: bitvector) n,
+  list2NR (s ++ [false]) n = (2 * list2NR s n)%nat.
+Proof. intro s.
+       induction s; intros.
+       - simpl. lia.
+       - simpl in *.
+         rewrite <- !plus_n_O in *.
+         case_eq a; intros.
+         + rewrite IHs. lia.
+         + rewrite IHs. lia.
+Qed.
+
+Lemma list2NR_eq:
+  forall(s: bitvector),
+  list2NR s 0 = N.to_nat (list2N (rev s)).
+Proof. intros s.
+       induction s using rev_ind; intros.
+       - simpl. easy.
+       - simpl.
+         Search rev.
+         rewrite rev_app_distr.
+         simpl.
+         case_eq x; intros.
+         + rewrite N2Nat.inj_succ_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqT.
+           easy.
+         + rewrite N2Nat.inj_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqF.
+           easy.
+Qed.
+
+
+Lemma list2NR_eq2:
+  forall(s: bitvector),
+  list2NR (rev s) 0 = N.to_nat (list2N s).
+Proof. intros s.
+       induction s; intros.
+       - simpl. easy.
+       - simpl.
+         case_eq a; intros.
+         + rewrite N2Nat.inj_succ_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqT.
+           easy.
+         + rewrite N2Nat.inj_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqF.
+           easy.
+Qed.
+
+
+Lemma app_false: forall (s : bitvector),
+  list2N s = list2N (s ++ [false]).
+Proof. intro s.
+       induction s as [ | x xs IHs].
+       - simpl. easy.
+       - simpl. case_eq x; intros.
+         + rewrite IHs. easy.
+         + rewrite IHs. easy.
+Qed.
+
+Lemma lengthS: 
+  forall (s: bitvector) x, length (s ++ [x]) = S (length s).
+Proof. intro s.
+       induction s; intros.
+       - simpl. easy.
+       - simpl. rewrite IHs. easy.
+Qed.
+
+Lemma firstN_app: forall m (s: bitvector) x,
+  (length s >= m)%nat -> 
+  firstn m s = firstn m (s ++ [x]).
+Proof. intro m.
+       induction m; intros.
+       - simpl. easy.
+       - simpl. case_eq s; intros.
+         + subst. easy.
+         + simpl. rewrite <- IHm.
+           easy. subst. simpl in *. lia.
+Qed.
+
+Lemma firstN_app15:
+ forall m s,
+  firstn (S m) s = mk_list_false (S m) ->
+  firstn m s = mk_list_false m.
+Proof. intros m.
+       induction m; intros.
+       - simpl. easy.
+       - simpl.
+         case_eq s; intros.
+         + subst. easy.
+         + subst.
+           rewrite firstn_cons in H.
+           assert(mk_list_false (S (S m)) = false :: mk_list_false (S m)).
+           { simpl. easy. }
+           rewrite H0 in H.
+           assert (b = false).
+           { inversion H. easy. }
+           subst.
+           f_equal.
+           apply IHm.
+           inversion H.
+           easy.
+Qed.
+
+Lemma firstN_app2:
+  forall m k s, 
+  (m >= k)%nat ->
+  firstn m s = mk_list_false m -> 
+  firstn (m - k) s = mk_list_false (m - k).
+Proof. intro m.
+       induction m; intros.
+       - simpl. easy.
+       - simpl. case_eq k; intros.
+         + simpl. easy.
+         + apply IHm. lia.
+           apply firstN_app15.
+           easy.
+Qed.
+
+Lemma mklf:
+forall (xs: bitvector),
+mk_list_false (length xs) ++ [false] = false :: mk_list_false (length xs).
+Proof. intro s.
+       induction s; intros.
+       - simpl. easy.
+       - simpl. rewrite IHs. easy.
+Qed.
+
+Lemma first_bits_zeroA : forall (s : bitvector), 
+  (length s >= (list2NR s 0))%nat ->
+  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). Admitted.
+(*Proof. intros s H.
+       induction s as [ | x xs IHs] using (rev_ind).
+       - simpl. easy.
+       - simpl in *.
+         case_eq x; intros.
+         + subst.
+           rewrite list2NR_eqT in *.
+           simpl.
+           rewrite <- !plus_n_O in *.
+           rewrite lengthS in *.
+           simpl in *.
+           rewrite <- !plus_n_O in *.
+           simpl in *.
+           rewrite <- firstN_app.
+           specialize (firstN_app2 ((length xs) - (list2NR xs 0))%nat
+                                   (list2NR xs 0) xs); intro HH.
+(*
+In environment
+xs : list bool
+H : (S (length xs) >= S (list2NR xs 0 + list2NR xs 0))%nat
+IHs : (length xs >= list2NR xs 0)%nat ->
+      firstn (length xs - list2NR xs 0) xs =
+      mk_list_false (length xs - list2NR xs 0)
+The term "(length xs - list2NR xs 0)%nat" has type 
+"nat" while it is expected to have type "(?m >= ?k)%nat".
+*)
+           rewrite Nat.sub_add_distr.
+           apply HH.
+           lia.
+           apply IHs. lia.
+           lia.
+         + subst.
+           rewrite list2NR_eqF in *.
+           simpl.
+           rewrite <- !plus_n_O in *.
+           rewrite lengthS in *.
+           case_eq (list2NR xs 0); intros.
+           * subst.
+             rewrite plus_O_n.
+             rewrite H0 in *.
+             rewrite <- minus_n_O in *.
+             assert(S (length xs) = length(xs ++ [false])).
+             { rewrite app_length. simpl. lia. }
+             rewrite H1 at 1.
+             rewrite firstn_all.
+             simpl. rewrite <- IHs.
+             rewrite firstn_all.
+             rewrite firstn_all in IHs.
+             rewrite IHs.
+             induction xs; intros.
+             ++ simpl. easy.
+             ++ simpl. rewrite mklf. easy.
+             ++ lia.
+             ++ lia.
+           * rewrite H0 in *.
+             simpl.
+             rewrite <- firstN_app.
+             assert((length xs - (n0 + S n0)) = ((length xs - S n0) - n0)).
+             { simpl. lia. }
+             rewrite H1.
+             specialize (firstN_app2 (length xs - S n0) (n0) xs); intro HH.
+             apply HH.
+             lia.
+             apply IHs.
+             lia. lia.
+Qed.*)
+
+Lemma first_bits_zero : forall (s : bitvector), 
+  (N.to_nat (list2N s) < length s)%nat ->
+  firstn (length s - N.to_nat (list2N s)) (rev s) = mk_list_false (length s - N.to_nat (list2N s)).
+Proof. intros s H.
+       rewrite <- list2NR_eq2.
+       specialize(first_bits_zeroA (rev s)); intro HH.
+(*
+In environment
+s : bitvector
+H : (N.to_nat (list2N s) < length s)%nat
+The term "rev s" has type "list bool" while it is expected to have type
+ "(length ?s >= list2NR ?s 0)%nat".
+*)
+       rewrite rev_length in HH.
+       rewrite HH. easy.
+       rewrite <- list2NR_eq2 in H.
+       lia.
+Qed.
+(* Burak's solution *)
+
+
+
+
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
 (* forall s, k < l -> first (l - k) s = [0...0] *)
@@ -7942,7 +8225,7 @@ Lemma first_bits_zero : forall (s : bitvector),
   (N.to_nat (list2N s) < length s)%nat ->
   firstn (length s - N.to_nat (list2N s)) (rev s) = 
   mk_list_false (length s - N.to_nat (list2N s)).
-Proof.
+Proof. 
   (* Approach 1 - Induction on (l - k): *)
   (* intros s. induction (length s - N.to_nat (list2N s))%nat.
   + easy.
@@ -7961,18 +8244,18 @@ Proof.
      (l - k) = S n as the inductive proof obligation *)
   
   (* Approach 2 - Induction on l first, then case k: *)
-  (*intros s. pose proof (@list2N_0_implies_mlf s) as list2Ns.
+  intros s. pose proof (@list2N_0_implies_mlf s) as list2Ns.
   induction (length s).
   + intros Hlt. inversion Hlt.
   + intros Hlt. case_eq (N.to_nat (list2N s)).
     - intros case. rewrite case in *. rewrite Nat.sub_0_r in *.
       apply Nat2N.inj_iff in case. rewrite N2Nat.id in case. 
-      simpl in case. specialize (@list2Ns case).
-      apply rev_func in list2Ns. 
+      simpl in case. assert (0%nat = 0%nat). { easy. }
+      specialize (@list2Ns H). apply rev_func in list2Ns. 
       rewrite rev_mk_list_false in list2Ns.
       rewrite list2Ns. rewrite <- (@length_mk_list_false (S n)) at 1.
       rewrite firstn_all. easy.
-    - intros m. intros case. rewrite case in *.*)
+    - intros m. intros case. rewrite case in *.
   (* Multiple issues:
      1. We are doing induction on length s.
         We have a lemma "H: list2N s = 0 -> s = mlf (length s)".
@@ -8008,7 +8291,7 @@ Proof.
      If we did case_eq on (N.to_nat (list2N s)) we would retain this
      fact but we wouldn't have an induction hypothesis, which 
      is integral for the second case. *) 
-  intros s. induction (N.to_nat (list2N s)).
+(*  intros s. induction (N.to_nat (list2N s)).
   + intros Hlt. rewrite Nat.sub_0_r. case_eq (length s).
     - easy.
     - intros n case. admit.
@@ -8020,8 +8303,7 @@ Proof.
     assert ((S m - n)%nat = S (S m - S n)).
     { rewrite Nat.sub_succ. apply lt_n_Sm_le in Hlt2. 
       apply Nat.sub_succ_l. apply Hlt2. }
-    rewrite H in IHn. apply firstn_succ_mlf. apply IHn.
-
+    rewrite H in IHn. apply firstn_succ_mlf. apply IHn.*)
 
 (* To overcome the issue from above, here we use a trick suggested 
    on StackOverflow but this gives us a problem in the 
@@ -8047,6 +8329,11 @@ Proof.
   intros s Hlen. pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
   apply H. apply last_bits_zero. apply Hlen.
 Qed.*)
+
+(* Approach 5 - Follow pxtp presentation approach *)
+  (*intros s H. pose proof (@pow_gt s) as powgt. 
+  apply Nat.ltb_lt in powgt. assert (forall n : nat, (n < 2^n)%nat).
+  { Search ((_ < _) -> _). apply N.size_gt. Search (_ < 2^_). Print N.size. (* k < 2^l*)*)
 Admitted.
 
 Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
