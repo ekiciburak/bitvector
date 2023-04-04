@@ -1,0 +1,115 @@
+This document suggests how to navigate BVList.v, 
+specifically RAWBITVECTOR_LIST. Search for the keyword in the comment 
+beside the section name (if any) to look for the corresponding 
+section in BVList.v. The (* sectionname-begin *) comment is specified 
+here. The corresponding (* sectionname-end *) comment can be used to find 
+the ending of a section. Typically new content to a section would be added 
+at the end of the section.
+
+-------------------------- Library Structure --------------------------
+
+
+Module Type BITVECTOR
+(*Dependently typed BVs.*)
+
+
+Module Type RAWBITVECTOR
+(* Non dependently typed BVs. Sizes are explicitly 
+mentioned. Easier to prove stuff. *)
+
+
+Module RAW2BITVECTOR (M:RAWBITVECTOR) <: BITVECTOR.
+(* Functor from non-dependently typed BV to 
+dependently typed BV. *)
+
+
+Module RAWBITVECTOR_LIST <: RAWBITVECTOR.
+(* Instantiation of non-dependently typed BVs. 
+All the implementation is done here. *)
+
+- Section Housekeeping
+  + size definition and lemmas
+  + zeros definitions and lemmas
+  + signed_min, signed_max definitions and lemmas
+  + bv_concat definitions and lemmas
+
+- Equality (* equality *)
+  + Definitions (* eq-defs-begin *)
+  + Theorems (* eq-thrms-begin *)
+
+- Logical Operations (* Logical Operations *)
+  + And (* and *)
+    * Definitions (* and-defs-begin *)
+    * Theorems (* and-thrms-begin *)
+  + Or (* or *)
+    * Definitions (* or-defs-begin *)
+    * Theorems (* or-thrms-begin *)
+  + Xor (* xor *)
+    * Definitions (* xor-defs-begin *)
+    * Theorems (* xor-thrms-begin *)
+  + Not (* not *)
+    * Definitions (* not-defs-begin *)
+    * Theorems (* not-thrms-begin *)
+
+- Arithmetic Operations (* Arithmetic Operations *)
+  + Addition (* addition *)
+    * Definitions (* add-defs-begin *)
+    * Theorems (* add-thrms-begin *)
+  + Subtraction (* subtraction *)
+    * Definitions (* sub-defs-begin *)
+    * Theorems (* sub-thrms-begin *)
+  + Addition-Subtraction (* addition-subtraction *)
+    * Theorems (* addsub-thrms-begin *)
+  + Multiplication (* multiplication *)
+    * Definitions (* mul-defs-begin *)
+    * Theorems (* mul-thrms-begin *)
+
+- Conversion Operations (* Conversion Operations *)
+  + Natural Numbers (* nat *)
+    * Theorems (* nat-thrms-begin *)
+  + Bitvectors -> Natural Numbers (* bv -> nat *)
+    * Definitions (* bv2nat-defs-begin *)
+    * Theorems (* bv2nat-thrms-begin *)
+  + Natural Numbers -> Bitvectors (* nat -> bv *)
+    * Definitions (* nat2bv-defs-begin *)
+    * Theorems (* nat2bv-thrms-begin *)
+
+- Comparison Operations (* Comparison Operations *)
+  + Definitions (* comp-defs *)
+    * Unsigned greater than (* ugt-defs-begin *)
+    * Unsigned less than (* ult-defs-begin *)
+    * Unsigned less than or equal to (* ule-defs-begin *)
+    * Unsigned greater than or equal to (* uge-defs-begin *)
+    * Signed less than (* slt-defs-begin *)
+  + Theorems (* comp-thrms *)
+    * Unsigned greater than (* ugt-thrms-begin *)
+    * Unsigned less than (* ult-thrms-begin *)
+    * Unsigned less than or equal to (* ule-thrms-begin *)
+    * Unsigned greater than or equal to (* uge-thrms-begin *)
+    * Signed less than (* slt-thrms-begin *)
+
+- Shift Operations (* Shift Operations *)
+  + Shift Left (* shift left *)
+    * Definitions (* shl-defs-begin *)
+    * Theorems (* shl-thrms-begin *)
+  + Logical Shift Right (* logical shift right *)
+    * Definitions (* shr-defs-begin *)
+    * Theorems (* shr-thrms-begin *)
+  + Arithmetic Shift Right (* arithmetic shift right *)
+    * Definitions (* ashr-defs-begin *)
+    * Theorems (* ashr-thrms-begin *)
+
+- Other Operations (* Other Operations *)
+  + Bitvector Extraction (* extraction *)
+    * Definitions (* extr-defs-begin *)
+    * Theorems (* extr-thrms-begin *)
+  + Bitvector Sign Extension (* exension *)
+    * Definitions (* extn-defs-begin *)
+    * Theorems (* extn-thrms-begin *)
+    
+      
+Module BITVECTOR_LIST <: BITVECTOR.
+(* Instantiation of dependently typed BVs. Since 
+stuff is harder to prove here, RAWBITVECTOR_LIST 
+is mapped to this using RAW2BITVECTOR *)
+

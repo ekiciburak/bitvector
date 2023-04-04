@@ -9,3 +9,5 @@ since all such tactics are in `Reconstr.v`.
 To make:
 1. `coq_makefile -f _CoqProject -o Makefile`
 2. `make`
+
+To navigate through the library BVList.v, use the comments from BVList-navigation.
