@@ -8127,7 +8127,7 @@ Qed.
 
 Lemma first_bits_zeroA : forall (s : bitvector), 
   (length s >= (list2NR s 0))%nat ->
-  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)).
+  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). 
 Proof. intros s H.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
@@ -8199,7 +8199,7 @@ Qed.
 (* Burak's solution *)
 
 
-
+(*
 
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
@@ -8317,6 +8317,8 @@ Qed.*)
   (*intros s H. pose proof (@pow_gt s) as powgt. 
   apply Nat.ltb_lt in powgt. assert (forall n : nat, (n < 2^n)%nat).
   { Search ((_ < _) -> _). apply N.size_gt. Search (_ < 2^_). Print N.size. (* k < 2^l*)*)
+Admitted.
+*)
 
 Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
   (N.to_nat (list2N s) < length s)%nat -> 
