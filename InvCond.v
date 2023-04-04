@@ -375,7 +375,7 @@ Proof.
             H ult).
   + rewrite case in *. rewrite Hnots. rewrite <- Hx2. rewrite case.
     apply H.
-Admitted.
+Qed.
 
 (*------------------------------------------------------------*)
 

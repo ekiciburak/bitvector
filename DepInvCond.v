@@ -319,7 +319,18 @@ Proof. intros.
        exists (@MkBitvector n x Hx).
        now rewrite RAWBITVECTOR_LIST.bv_shr_eq.
 Qed.
-
+(* (exists x, (x >> s) >u t) => (t <u (~s >> s)) *)
+Theorem bvshr_ugt_rtl : forall (n : N), forall (s t : bitvector n), 
+    (exists (x : bitvector n), bv_ugt (bv_shr x s) t = true)
+          ->
+    (bv_ult t (bv_shr (bv_not s) s) = true).
+Proof. intros.
+       destruct s as (s, Hs).
+       destruct t as (t, Ht).
+       unfold bv_ugt, bv_ult, bv_shr, bv in *. cbn in *.
+       specialize (bvshr_ugt_rtl n s t Hs Ht); intros. apply H0.
+       destruct H as ((x, Hx), H1). exists x; easy.
+Qed.
 (*------------------------------------------------------------*)
 
 

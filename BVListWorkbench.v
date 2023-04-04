@@ -8127,7 +8127,7 @@ Qed.
 
 Lemma first_bits_zeroA : forall (s : bitvector), 
   (length s >= (list2NR s 0))%nat ->
-  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). Admitted.
+  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)).
 Proof. intros s H.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
@@ -8142,18 +8142,8 @@ Proof. intros s H.
            rewrite <- !plus_n_O in *.
            simpl in *.
            rewrite <- firstN_app.
-           specialize (firstN_app2 ((length xs) - (list2NR xs 0))%nat
+           specialize (@firstN_app2 ((length xs) - (list2NR xs 0))%nat
                                    (list2NR xs 0) xs); intro HH.
-(*
-In environment
-xs : list bool
-H : (S (length xs) >= S (list2NR xs 0 + list2NR xs 0))%nat
-IHs : (length xs >= list2NR xs 0)%nat ->
-      firstn (length xs - list2NR xs 0) xs =
-      mk_list_false (length xs - list2NR xs 0)
-The term "(length xs - list2NR xs 0)%nat" has type 
-"nat" while it is expected to have type "(?m >= ?k)%nat".
-*)
            rewrite Nat.sub_add_distr.
            apply HH.
            lia.
@@ -8185,10 +8175,10 @@ The term "(length xs - list2NR xs 0)%nat" has type
            * rewrite H0 in *.
              simpl.
              rewrite <- firstN_app.
-             assert((length xs - (n0 + S n0)) = ((length xs - S n0) - n0)).
+             assert((length xs - (n + S n))%nat = ((length xs - S n) - n)%nat).
              { simpl. lia. }
              rewrite H1.
-             specialize (firstN_app2 (length xs - S n0) (n0) xs); intro HH.
+             specialize (@firstN_app2 (length xs - S n)%nat n xs); intro HH.
              apply HH.
              lia.
              apply IHs.
@@ -8200,14 +8190,7 @@ Lemma first_bits_zero : forall (s : bitvector),
   firstn (length s - N.to_nat (list2N s)) (rev s) = mk_list_false (length s - N.to_nat (list2N s)).
 Proof. intros s H.
        rewrite <- list2NR_eq2.
-       specialize(first_bits_zeroA (rev s)); intro HH.
-(*
-In environment
-s : bitvector
-H : (N.to_nat (list2N s) < length s)%nat
-The term "rev s" has type "list bool" while it is expected to have type
- "(length ?s >= list2NR ?s 0)%nat".
-*)
+       specialize(@first_bits_zeroA (rev s)); intro HH.
        rewrite rev_length in HH.
        rewrite HH. easy.
        rewrite <- list2NR_eq2 in H.
@@ -8221,11 +8204,11 @@ Qed.
 (* forall s, toNat(s) < len(s) -> 
 first (length s - N.to_nat (list2N s)) = [0..0] *)
 (* forall s, k < l -> first (l - k) s = [0...0] *)
-Lemma first_bits_zero : forall (s : bitvector), 
+(*Lemma first_bits_zero : forall (s : bitvector), 
   (N.to_nat (list2N s) < length s)%nat ->
   firstn (length s - N.to_nat (list2N s)) (rev s) = 
   mk_list_false (length s - N.to_nat (list2N s)).
-Proof. 
+Proof. *)
   (* Approach 1 - Induction on (l - k): *)
   (* intros s. induction (length s - N.to_nat (list2N s))%nat.
   + easy.
@@ -8243,7 +8226,7 @@ Proof.
      (l - k) = 0 for base case, (l - k) = n for IH, and 
      (l - k) = S n as the inductive proof obligation *)
   
-  (* Approach 2 - Induction on l first, then case k: *)
+  (* Approach 2 - Induction on l first, then case k: 
   intros s. pose proof (@list2N_0_implies_mlf s) as list2Ns.
   induction (length s).
   + intros Hlt. inversion Hlt.
@@ -8255,7 +8238,7 @@ Proof.
       rewrite rev_mk_list_false in list2Ns.
       rewrite list2Ns. rewrite <- (@length_mk_list_false (S n)) at 1.
       rewrite firstn_all. easy.
-    - intros m. intros case. rewrite case in *.
+    - intros m. intros case. rewrite case in *.*)
   (* Multiple issues:
      1. We are doing induction on length s.
         We have a lemma "H: list2N s = 0 -> s = mlf (length s)".
@@ -8334,7 +8317,6 @@ Qed.*)
   (*intros s H. pose proof (@pow_gt s) as powgt. 
   apply Nat.ltb_lt in powgt. assert (forall n : nat, (n < 2^n)%nat).
   { Search ((_ < _) -> _). apply N.size_gt. Search (_ < 2^_). Print N.size. (* k < 2^l*)*)
-Admitted.
 
 Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
   (N.to_nat (list2N s) < length s)%nat -> 
