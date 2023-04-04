@@ -8128,7 +8128,7 @@ Qed.
 Lemma first_bits_zeroA : forall (s : bitvector), 
   (length s >= (list2NR s 0))%nat ->
   firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)). Admitted.
-(*Proof. intros s H.
+Proof. intros s H.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
        - simpl in *.
@@ -8193,7 +8193,7 @@ The term "(length xs - list2NR xs 0)%nat" has type
              lia.
              apply IHs.
              lia. lia.
-Qed.*)
+Qed.
 
 Lemma first_bits_zero : forall (s : bitvector), 
   (N.to_nat (list2N s) < length s)%nat ->
