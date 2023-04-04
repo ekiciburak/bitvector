@@ -157,24 +157,6 @@ Proof. intro s.
          + rewrite IHs. easy.
 Qed.
 
-Compute list2NR [true; false; true] 3.
-Compute 2 * (list2NR [true; false; true] 2) + 1.
-Compute list2NR [false; true; true] (list2NR [false; true; true] 0).
-Compute list2NR [true; false; true; false] 0.
-Compute list2NR [true; false; true; false; true] 0.
-Compute firstn 50 [true; false; true; false; true].
-Compute list2N (rev [false; false; true; true; true; false; true]).
-
-Definition s1 := [false; false; true; true; false; true; true; false].
-Definition s2 := [true; false; true].
-Definition n := 5.
-Compute
-list2NR (s1 ++ s2) n = list2NR s1 (list2NR s2 n + 1).
-Compute
-list2NR ([true] ++ s1) n = list2NR [true] (list2NR s1 n).
-Compute list2NR (s1 ++ [true]) 7 = S (2 * list2NR s1 7).
-Compute (list2NR s1 0).
-
 Lemma lengthS: 
   forall (s: bitvector) x, length (s ++ [x]) = S (length s).
 Proof. intro s.
@@ -195,8 +177,6 @@ Proof. intro m.
            easy. subst. simpl in *. lia.
 Qed.
 
-Compute firstn 2 (mk_list_false 3).
-Compute mk_list_false 0.
 
 Lemma firstN_app15:
  forall m s,
