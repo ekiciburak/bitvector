@@ -7883,6 +7883,193 @@ Lemma pos_powN: forall n: N, (N.to_nat n > 0)%nat -> (2^(N.to_nat n) - 1 >= (N.t
 Proof. intros. Reconstr.rsimple (@RAWBITVECTOR_LIST.pos_pow) Reconstr.Empty.
 Qed.
 
+
+
+(* For challenge inv cond bvshr_ugt_rtl *)
+Lemma rev_skipn : forall (b : bitvector) (n : nat), 
+  (n < length b)%nat -> rev (skipn n b) = firstn (length b - n) (rev b).
+Proof.
+  induction b.
+  + intros n len. now contradict len.
+  + intros n len. induction n.
+    - rewrite skip0. rewrite Nat.sub_0_r. rewrite <- rev_length. 
+      rewrite firstn_all. easy.
+    - simpl. simpl in len. apply lt_S_n in len. specialize (@IHb n len).
+      rewrite IHb. case n in *.
+      * rewrite Nat.sub_0_r. rewrite <- rev_length. rewrite firstn_all.
+        rewrite firstn_app. rewrite firstn_all. rewrite Nat.sub_diag.
+        rewrite firstn_O. rewrite app_nil_r. easy.
+      * apply Nat.lt_le_incl in len. 
+        assert (gt0 : (0 < S n)%nat).
+        { case n.
+          + apply Nat.lt_0_1.
+          + intros n0. apply (@Nat.lt_0_succ (S n0)). }
+        pose proof (@firstn_removelast bool (length b - S n) (rev b ++ [a])).
+        assert (length (rev b ++ [a]) = S (length (rev b))).
+        { induction (rev b).
+          + easy.
+          + rewrite app_length. assert (length [a] = 1)%nat by easy.
+            rewrite H0. rewrite Nat.add_1_r. easy. }
+        pose proof (@Nat.sub_lt (length b) (S n) len gt0).
+        rewrite <- rev_length in H1 at 2. apply Nat.lt_lt_succ_r in H1.
+        rewrite <- H0 in H1. specialize (@H H1).
+        rewrite <- H. rewrite removelast_app. simpl. rewrite app_nil_r. easy.
+        easy.
+Qed.
+
+Lemma firstn_succ_mlf : forall (s : bitvector) (n : nat),
+  firstn (S n) s = mk_list_false (S n) -> 
+  firstn  n s = mk_list_false n.
+Proof.
+  induction s.
+  + intros n H1st. easy.
+  + Reconstr.scrush.
+Qed.
+
+(* size x = size y <-> length x = length y *)
+Theorem size_len_eq : forall (x y : bitvector), size x = size y <-> 
+  length x = length y.
+Proof.
+  intros x y. split.
+  + intros H. unfold size in H. now apply Nat2N.inj in H.
+  + intros H. unfold size. rewrite H. apply eq_refl.
+Qed.
+
+(* forall s, toNat(s) < len(s) -> 
+first (length s - N.to_nat (list2N s)) = [0..0] *)
+(* forall s, k < l -> first (l - k) s = [0...0] *)
+Lemma first_bits_zero : forall (s : bitvector), 
+  (N.to_nat (list2N s) < length s)%nat ->
+  firstn (length s - N.to_nat (list2N s)) (rev s) = 
+  mk_list_false (length s - N.to_nat (list2N s)).
+Proof.
+  (* Approach 1 - Induction on (l - k): *)
+  (* intros s. induction (length s - N.to_nat (list2N s))%nat.
+  + easy.
+  + intros Hlen. specialize (@IHn Hlen). *)
+  (* The issue here is as follows:
+     Let l = (length s), k = (list2N s)
+     We want to do structural induction on l - k
+     so that base case which is easy is:
+     - k < l -> firstn 0 (rev s) = MLF 0
+     - in the inductive case, we want to assume
+       firstn l - (k + 1) bits are 0 and then prove 
+       firstn l - k bits are 0.
+     Doing mathematical induction on (l - k) doesn't 
+     achieve this because it just considers 
+     (l - k) = 0 for base case, (l - k) = n for IH, and 
+     (l - k) = S n as the inductive proof obligation *)
+  
+  (* Approach 2 - Induction on l first, then case k: *)
+  (*intros s. pose proof (@list2N_0_implies_mlf s) as list2Ns.
+  induction (length s).
+  + intros Hlt. inversion Hlt.
+  + intros Hlt. case_eq (N.to_nat (list2N s)).
+    - intros case. rewrite case in *. rewrite Nat.sub_0_r in *.
+      apply Nat2N.inj_iff in case. rewrite N2Nat.id in case. 
+      simpl in case. specialize (@list2Ns case).
+      apply rev_func in list2Ns. 
+      rewrite rev_mk_list_false in list2Ns.
+      rewrite list2Ns. rewrite <- (@length_mk_list_false (S n)) at 1.
+      rewrite firstn_all. easy.
+    - intros m. intros case. rewrite case in *.*)
+  (* Multiple issues:
+     1. We are doing induction on length s.
+        We have a lemma "H: list2N s = 0 -> s = mlf (length s)".
+        With the induction, we want the equality of each 
+        case of induction. For instance, in the base case
+        we want as a hypothesis that "lenght s = 0".
+        Since there doesn't seem to be a way to do this, 
+        I added H to the hypothesis so that induction changes
+        the occurence of length s in it. However, this
+        adds H to the inductive hypothesis which isn't possible
+        to prove.
+     2. Assuming we didn't have the problem above, the 
+        inductive hypothesis would be (S m < n) -> blah.
+        We also have (S m < S n) and our goal is blah2.
+        We need (S m < n) so we can use blah to prove blah2.
+        But we can't get (S m < n) from what we have. *)
+
+  (* Approach 3 - Induction on l first, then induction k: *)
+  (*intros s. induction (length s).
+  + intros Hlt. inversion Hlt.
+  + intros Hlt. induction (N.to_nat (list2N s)).
+    - rewrite Nat.sub_0_r in *. *)
+  (* The issue here is that we don't have the value of 
+     induction in the hypothesis, we are only able to 
+     do that with case. *)
+  
+  (* Approach 4 - Induction on k first, then case l: *)
+  (* Here the problem is that in the base case, 
+     Coq sets all occurrences of (N.to_nat (list2N s)) to 
+     0. But we want to retain the fact that "(N.to_nat (list2N s)) = 0"
+     so that we can use that to prove that firstn n s = mk_list_false n
+     which is currently admitted.
+     If we did case_eq on (N.to_nat (list2N s)) we would retain this
+     fact but we wouldn't have an induction hypothesis, which 
+     is integral for the second case. *) 
+  intros s. induction (N.to_nat (list2N s)).
+  + intros Hlt. rewrite Nat.sub_0_r. case_eq (length s).
+    - easy.
+    - intros n case. admit.
+  + intros Hlt. pose proof Hlt as Hlt2. 
+    apply Nat.lt_succ_l in Hlt2. specialize (@IHn Hlt2).
+    case_eq (length s).
+    - intros case. easy.
+    - intros m case. rewrite case in *.
+    assert ((S m - n)%nat = S (S m - S n)).
+    { rewrite Nat.sub_succ. apply lt_n_Sm_le in Hlt2. 
+      apply Nat.sub_succ_l. apply Hlt2. }
+    rewrite H in IHn. apply firstn_succ_mlf. apply IHn.
+
+
+(* To overcome the issue from above, here we use a trick suggested 
+   on StackOverflow but this gives us a problem in the 
+   inductive step as mentioned below.
+  intros s. generalize (eq_refl (N.to_nat (list2N s))).
+  generalize (N.to_nat (list2N s)) at 1.
+  induction n.
+  + intros H Hlt. rewrite <- H. rewrite Nat.sub_0_r. 
+    case_eq (length s).
+    - easy.
+    - intros n case. apply Nat2N.inj_iff in H. 
+      rewrite N2Nat.id in H. simpl in H. 
+      pose proof (@list2N_zero_implies_mlf s H) as list2N_zero_implies_mlf. 
+      apply rev_func in list2N_zero_implies_mlf.
+      rewrite rev_mk_list_false in list2N_zero_implies_mlf.
+      rewrite list2N_zero_implies_mlf. rewrite case. 
+      apply firstn_mlf.
+  + intros H Hlt. rewrite <- H in Hlt. pose proof Hlt as Hlt2. 
+    apply Nat.lt_succ_l in Hlt2. 
+    Now the problem here is that we have S n = N.to_nat (list2N s)
+    but we need to show n = N.to_nat (list2N s) to access the IH*)
+(* This part reduces the proof goal to that of last_bits_zero
+  intros s Hlen. pose proof (@skipn_firstn_mlf s (N.to_nat (list2N s)) Hlen).
+  apply H. apply last_bits_zero. apply Hlen.
+Qed.*)
+Admitted.
+
+Lemma first_bits_ule : forall (x s : bitvector), size x = size s -> 
+  (N.to_nat (list2N s) < length s)%nat -> 
+  ule_list_big_endian 
+    (firstn (length s - N.to_nat (list2N s)) x)
+    (firstn (length s - N.to_nat (list2N s)) (bv_not (rev s))) = true.
+Proof.
+  intros x s Hsize Hlt. pose proof (@first_bits_zero s Hlt) as Hzero.
+  unfold bv_not, bits. rewrite firstn_map. rewrite Hzero.
+  pose proof bv_not_false_true as negb_mlf. 
+  unfold bv_not, bits in negb_mlf. rewrite negb_mlf.
+  assert (len_firstn : length (firstn (length s - N.to_nat (list2N s)) x) = 
+          (length s - N.to_nat (list2N s))%nat).
+  { pose proof (@firstn_length_le bool x (length s - N.to_nat (list2N s))).
+    pose proof Hsize as Hlen. apply size_len_eq in Hlen. rewrite Hlen in H.
+    apply Nat.lt_le_incl in Hlt. apply le_minusni_n in Hlt.
+    apply H in Hlt. apply Hlt. }
+  rewrite <- len_firstn at 2. apply ule_list_big_endian_1.
+Qed.
+
+
+
 (* forall b, toNat(b) >= 0 *)
 Lemma bvgez: forall a: bitvector, (bv2nat_a a = 0%nat) \/ (bv2nat_a a > 0)%nat.
 Proof. intro a.
