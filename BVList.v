@@ -7961,6 +7961,8 @@ Fixpoint list2NR (a: list bool) (n: nat) :=
     | x :: xs => if x then list2NR xs (2 * n + 1) else list2NR xs (2 * n)
   end.
 
+Definition list2NTR (a: list bool) := list2NR a 0.
+
 Lemma true_list2NR:
   forall (s: bitvector),
   list2NR (true :: s) 0 = list2NR s 1.
@@ -8004,10 +8006,30 @@ Proof. intro s.
          + rewrite IHs. lia.
 Qed.
 
-Lemma list2NR_eq:
+Lemma list2N_eq:
   forall(s: bitvector),
-  list2NR s 0 = N.to_nat (list2N (rev s)).
+  list2NTR (rev s) = N.to_nat (list2N s).
 Proof. intros s.
+       unfold list2NTR.
+       induction s; intros.
+       - simpl. easy.
+       - simpl.
+         case_eq a; intros.
+         + rewrite N2Nat.inj_succ_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqT.
+           easy.
+         + rewrite N2Nat.inj_double.
+           rewrite <- IHs.
+           rewrite list2NR_eqF.
+           easy.
+Qed.
+
+Lemma list2N_eq2:
+  forall(s: bitvector),
+  list2NTR s = N.to_nat (list2N (rev s)).
+Proof. intros s.
+       unfold list2NTR.
        induction s using rev_ind; intros.
        - simpl. easy.
        - simpl.
@@ -8025,24 +8047,6 @@ Proof. intros s.
            easy.
 Qed.
 
-
-Lemma list2NR_eq2:
-  forall(s: bitvector),
-  list2NR (rev s) 0 = N.to_nat (list2N s).
-Proof. intros s.
-       induction s; intros.
-       - simpl. easy.
-       - simpl.
-         case_eq a; intros.
-         + rewrite N2Nat.inj_succ_double.
-           rewrite <- IHs.
-           rewrite list2NR_eqT.
-           easy.
-         + rewrite N2Nat.inj_double.
-           rewrite <- IHs.
-           rewrite list2NR_eqF.
-           easy.
-Qed.
 
 
 Lemma app_false: forall (s : bitvector),
@@ -8124,9 +8128,10 @@ Proof. intro s.
 Qed.
 
 Lemma first_bits_zeroA : forall (s : bitvector), 
-  (length s >= (list2NR s 0))%nat ->
-  firstn (length s - (list2NR s 0)) s = mk_list_false (length s - (list2NR s 0)).
+  (length s >= (list2NTR s))%nat ->
+  firstn (length s - (list2NTR s)) s = mk_list_false (length s - (list2NTR s)).
 Proof. intros s H.
+       unfold list2NTR in *.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
        - simpl in *.
@@ -8187,11 +8192,11 @@ Lemma first_bits_zero : forall (s : bitvector),
   (N.to_nat (list2N s) < length s)%nat ->
   firstn (length s - N.to_nat (list2N s)) (rev s) = mk_list_false (length s - N.to_nat (list2N s)).
 Proof. intros s H.
-       rewrite <- list2NR_eq2.
+       rewrite <- list2N_eq.
        specialize(@first_bits_zeroA (rev s)); intro HH.
        rewrite rev_length in HH.
        rewrite HH. easy.
-       rewrite <- list2NR_eq2 in H.
+       rewrite <- list2N_eq in H.
        lia.
 Qed.
 (* Burak's solution *)
