@@ -1055,7 +1055,7 @@ Definition bv_uleP (a b : bitvector) : Prop :=
 
 
 (* signed less than *)
-Fixpoint slt_list_big_endian (x y: list bool) :=
+Definition slt_list_big_endian (x y: list bool) :=
   match x, y with
     | nil, _  => false
     | _ , nil => false
@@ -1073,7 +1073,7 @@ Lemma ult_slt_eq: forall a b x, ult_list_big_endian (x :: a) (x :: b) =
                                  slt_list_big_endian (x :: a) (x :: b).
 Proof. intros. simpl.
         case_eq a; intros. 
-        + cbn. 
+        + cbn.
           Reconstr.reasy (@Coq.Bool.Bool.andb_negb_r) 
             (@Coq.Init.Datatypes.negb, @Coq.Init.Datatypes.andb).
         + f_equal.
@@ -7809,7 +7809,7 @@ Proof. intro a.
        rewrite N.eqb_refl.
        induction a; intros.
        - easy.
-       - cbn in *. now rewrite bv_slt_be_nrefl.
+       - unfold slt_list. cbn in *. now rewrite bv_slt_be_nrefl.
 Qed.
 
 Lemma mk_list_false_not_true: forall l,
@@ -8048,7 +8048,6 @@ Proof. intros s.
 Qed.
 
 
-
 Lemma app_false: forall (s : bitvector),
   list2N s = list2N (s ++ [false]).
 Proof. intro s.
@@ -8131,10 +8130,10 @@ Lemma first_bits_zeroA : forall (s : bitvector),
   (length s >= (list2NTR s))%nat ->
   firstn (length s - (list2NTR s)) s = mk_list_false (length s - (list2NTR s)).
 Proof. intros s H.
-       unfold list2NTR in *.
        induction s as [ | x xs IHs] using (rev_ind).
        - simpl. easy.
        - simpl in *.
+         unfold list2NTR in *.
          case_eq x; intros.
          + subst.
            rewrite list2NR_eqT in *.
