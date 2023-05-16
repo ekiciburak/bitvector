@@ -636,12 +636,15 @@ Lemma bv_mk_eq l1 l2 : bv_eq l1 l2 = beq_list l1 l2.
 Proof.
   unfold bv_eq, size, bits.
   case_eq (Nat.eqb (length l1) (length l2)); intro Heq.
-  - now rewrite (EqNat.beq_nat_true _ _ Heq), N.eqb_refl.
+  - specialize Nat.eqb_eq; intro H.
+    destruct (H (length l1) (length l2)) as (H1,H2).
+    specialize(H1 Heq).
+    now rewrite H1, N.eqb_refl.
   - replace (N.of_nat (length l1) =? N.of_nat (length l2)) with false.
     * revert l2 Heq. induction l1 as [ |b1 l1 IHl1]; intros [ |b2 l2]; simpl in *; auto.
       intro Heq. now rewrite <- (IHl1 _ Heq), andb_false_r.
     * symmetry. rewrite N.eqb_neq. intro H. apply Nat2N.inj in H. rewrite H in Heq.
-      rewrite <- EqNat.beq_nat_refl in Heq. discriminate.
+      rewrite Nat.eqb_refl in Heq. discriminate.
 Qed.
 
 Definition bv_concat (a b: bitvector) : bitvector := b ++ a.
@@ -803,7 +806,7 @@ Qed.
 Theorem succ_gt_pred : forall (n : nat), (n >= 0)%nat -> (S n >= 0)%nat.
 Proof.
   intros n. induction n as [| n' IHn].
-  + unfold ge. intros H. apply le_0_n.
+  + unfold ge. intros H. apply Nat.le_0_l.
   + unfold ge. intros H. auto.
 Qed.
 
@@ -4031,8 +4034,7 @@ Qed.
          apply N.ltb_nlt in H.
          apply N.nlt_ge in H. lia.
   Qed.
-         
-  
+ 
   Lemma bv_extr_size: forall (i n0 n1 : N) a, 
                       size a = n1 -> size (@bv_extr i n0 n1 a) = n0%N.
   Proof. 
@@ -4166,7 +4168,7 @@ Qed.
     intros. unfold bv_zextn, zextend, size in *.
     rewrite <- N2Nat.id. apply f_equal. 
     specialize (@length_extend a (nat_of_N i) false). intros.
-    rewrite H0. rewrite plus_distr. rewrite plus_comm.
+    rewrite H0. rewrite plus_distr. rewrite Nat.add_comm.
     apply f_equal.
     apply (f_equal (N.to_nat)) in H.
     now rewrite Nat2N.id in H.
@@ -4183,7 +4185,7 @@ Qed.
     lia.
     intros.
     specialize (@length_extend a (nat_of_N i) b). intros.
-    subst. rewrite plus_distr. rewrite plus_comm.
+    subst. rewrite plus_distr. rewrite Nat.add_comm.
     rewrite Nat2N.id.
     now rewrite <- H1.
   Qed.
@@ -4290,8 +4292,11 @@ Proof. intro n.
                @Coq.Arith.PeanoNat.Nat.leb_le, @Coq.Arith.PeanoNat.Nat.succ_le_mono)
               (@Coq.Init.Nat.min, @Coq.Init.Peano.lt).
            * rewrite app_length, length_pos2list_nil, H, length_mk_list_false.
-            	Reconstr.reasy (@Coq.Arith.Minus.le_plus_minus,
-                @Coq.Arith.Compare_dec.leb_complete_conv) (@Coq.Init.Peano.lt).
+             rewrite Arith_prebase.le_plus_minus_stt with (n := S n).
+             reflexivity.
+             specialize(Arith.Compare_dec.leb_complete_conv); intro Ha.
+             specialize(Ha n s H0).
+             easy.
 Qed.
 
 Definition nat2bv (n: nat) (s: N): bitvector := N2list (N.of_nat n) (N.to_nat s).
@@ -4588,7 +4593,7 @@ Proof.
   + easy.
   + induction y.
     - easy.
-    - simpl. pose proof ltxy as ltxy2. apply lt_S_n in ltxy2. 
+    - simpl. pose proof ltxy as ltxy2. apply Nat.succ_lt_mono in ltxy2. 
       pose proof ltxy2 as ltxSy. apply Nat.lt_lt_succ_r in ltxSy.
       apply IHx in ltxSy. rewrite <- ltxSy.
       rewrite mk_list_true_app. rewrite firstn_app. rewrite length_mk_list_true.
@@ -4597,7 +4602,7 @@ Proof.
         + easy.
         + induction m.
           - intros. now contradict H.
-          - intros. simpl. apply lt_S_n in H. specialize (@IHn m H). apply IHn.
+          - intros. simpl. apply Nat.succ_lt_mono in H. specialize (@IHn m H). apply IHn.
       }
       specialize (@H x y ltxy2). rewrite H. simpl. rewrite app_nil_r. easy.
 Qed.
@@ -5865,7 +5870,7 @@ Definition bv_shr_a (a b : bitvector) : bitvector :=
 Lemma length_skipn: forall n (a: list bool), length (skipn n a) = (length a - n)%nat.
 Proof. intro n.
        induction n; intros.
-       - cbn. now rewrite <- minus_n_O.
+       - cbn. now rewrite Nat.sub_0_r.
        - cbn. case_eq a; intros.
          now cbn.
          cbn. now rewrite <- IHn.
@@ -5971,12 +5976,13 @@ Proof. intro a.
           rewrite !app_length, !length_mk_list_false, !firstn_length.
           assert (Hone: Init.Nat.min (length (a :: a0) - n) (length (a :: a0))%nat =
                       (length (a :: a0) - n)%nat).
-          { rewrite Min.min_l. easy.
+          { 
+            rewrite Nat.min_l. easy.
             lia.
           }
           rewrite Hone. 
           assert (Htwo: (n + (length (a :: a0) - n))%nat = (length (a :: a0))%nat).
-          { rewrite le_plus_minus_r.
+          { rewrite Nat.add_comm, Nat.sub_add.
             easy.
             apply Nat.ltb_lt in H. lia. 
           }
@@ -5985,7 +5991,7 @@ Proof. intro a.
                    firstn (length (a :: a0) - n) (a :: a0)) ++ mk_list_false n) = length (a :: a0)).
           { rewrite skipn_jo.
             rewrite app_length, firstn_length, length_mk_list_false.
-            rewrite Min.min_l, Nat.sub_add.
+            rewrite Nat.min_l, Nat.sub_add.
             easy. 
             apply Nat.ltb_lt in H. lia.
             lia.
@@ -5996,7 +6002,7 @@ Proof. intro a.
           assert ((n + length (firstn (length (a :: a0) - n) (a :: a0)) - n)%nat = 
                   (length (a :: a0) - n)%nat).
           { rewrite firstn_length.
-            rewrite Min.min_l, minus_plus. easy.
+            rewrite Nat.min_l, Nat.add_comm, Nat.add_sub. easy.
             apply Nat.ltb_lt in H. lia.
           }
           rewrite H1.
@@ -6196,10 +6202,24 @@ Proof.
   case_eq ((0 <? length b)%nat); intros.
   + case_eq (eqb sign false); intros; simpl;
     now rewrite app_nil_r.
-  + case_eq (eqb sign false); intros;
-    rewrite Nat.ltb_ge in H; apply le_n_0_eq in H;
-    pose proof (@empty_list_length bool b); symmetry in H;
-    apply H1 in H; rewrite H; easy.
+  + case_eq (eqb sign false); intros.
+    rewrite Nat.ltb_ge in H;
+    apply Nat.le_0_r in H;
+    rewrite symmetry in H;
+    pose proof (@empty_list_length bool b);
+    apply H1 in H; rewrite H;
+    simpl;
+    symmetry.
+    apply H1.
+    easy.
+    easy.
+    rewrite Nat.ltb_ge in H.
+    apply Nat.le_0_r in H.
+    rewrite H.
+    simpl.
+    case_eq b; intros.
+    - easy.
+    - subst. simpl in *. easy.
 Qed.
 
 Lemma bvashr_zero : forall (b : bitvector), bv_ashr_a b (zeros (size b)) = b.
@@ -6535,9 +6555,10 @@ Proof. intros.
                Reconstr.reasy (@Coq.Lists.List.firstn_all, 
                   @Coq.Lists.List.app_nil_r) Reconstr.Empty.
                subst. cbn. rewrite !app_length. cbn. rewrite !length_mk_list_true.
-               rewrite Min.min_l.
+               rewrite Nat.min_l.
                assert ((n0 + (length a0 - n0))%nat = (length a0)).
-               { rewrite le_plus_minus_r. easy.
+               { rewrite Nat.add_comm.
+                 rewrite Nat.sub_add. easy.
                  apply Nat.leb_le in Htwo.
                  Reconstr.reasy (@Coq.Arith.PeanoNat.Nat.lt_le_incl) (@Coq.Init.Peano.lt).
                }
@@ -6761,10 +6782,13 @@ Proof. intro n.
          assert (((length (b :: l) - n)%nat = (S m)%nat)).
          { unfold m in *.
            case_eq n; intros. cbn. now rewrite Nat.sub_0_r.
-           cbn.
-           Reconstr.rcrush (@Coq.Arith.PeanoNat.Nat.ltb_lt,
-           @Coq.Arith.PeanoNat.Nat.sub_succ, @Coq.Init.Peano.le_S_n,
-           @Coq.Arith.Minus.minus_Sn_m) (@Coq.Init.Peano.lt, @Coq.Init.Datatypes.length).
+           cbn. 
+           rewrite <- Nat.sub_succ_l. easy.
+           rewrite <- H2.
+           rewrite H1 in H, H0.
+           simpl in H, H0.
+           apply PeanoNat.Nat.ltb_lt in H0.
+           lia.
          }
          rewrite H2, removelast_firstn. easy.
          unfold m.
@@ -7127,7 +7151,7 @@ Proof. intro a.
             ++ cbn in H. subst. now contradict H.
             ++ easy.
             ++ subst.
-               Reconstr.reasy (@Coq.Arith.Lt.lt_S_n, @Coq.Arith.PeanoNat.Nat.ltb_lt) 
+               Reconstr.reasy (@Nat.succ_lt_mono, @Coq.Arith.PeanoNat.Nat.ltb_lt) 
                (@Coq.Init.Datatypes.length).
 Qed.
 
@@ -7242,11 +7266,11 @@ Proof. intro n.
         - case_eq m; intros.
           + right.
             Reconstr.reasy (@RAWBITVECTOR_LIST.n_cases_all_gt) Reconstr.Empty.
-          + Reconstr.rcrush (@Coq.Arith.EqNat.beq_nat_refl, 
+          + Reconstr.rcrush (@Nat.eqb_refl, 
                @Coq.Arith.PeanoNat.Nat.add_1_r,
                @Coq.PArith.Pnat.Pos2Nat.inj_1, 
                @RAWBITVECTOR_LIST.ltb_plus,  
-               @Coq.Arith.EqNat.beq_nat_eq) Reconstr.Empty.
+               @Nat.eqb_eq) Reconstr.Empty.
 Qed.
 
 Lemma skipn_same_mktr: forall n, 
@@ -7596,8 +7620,9 @@ Proof. intro t.
             assert ((Nat.div a0 2 <? N.to_nat (list2N t))%nat = true).
             apply Nat.ltb_lt.
             apply Nat.ltb_lt in H.
-            Reconstr.rexhaustive1 (@Coq.Arith.PeanoNat.Nat.div_lt_upper_bound,
-             @Coq.PArith.Pnat.Pos2Nat.inj_1) Reconstr.Empty.
+            specialize(Nat.Div0.div_lt_upper_bound a0 2 (N.to_nat (list2N t))); intro Ha.
+            apply Ha.
+            easy.
             specialize (IHt (Nat.div a0 2 ) H1).
             Reconstr.reasy Reconstr.Empty Reconstr.Empty.
 Qed.
@@ -7894,7 +7919,7 @@ Proof.
   + intros n len. induction n.
     - rewrite skip0. rewrite Nat.sub_0_r. rewrite <- rev_length. 
       rewrite firstn_all. easy.
-    - simpl. simpl in len. apply lt_S_n in len. specialize (@IHb n len).
+    - simpl. simpl in len. apply Nat.succ_lt_mono in len. specialize (@IHb n len).
       rewrite IHb. case n in *.
       * rewrite Nat.sub_0_r. rewrite <- rev_length. rewrite firstn_all.
         rewrite firstn_app. rewrite firstn_all. rewrite Nat.sub_diag.
@@ -8033,7 +8058,6 @@ Proof. intros s.
        induction s using rev_ind; intros.
        - simpl. easy.
        - simpl.
-         Search rev.
          rewrite rev_app_distr.
          simpl.
          case_eq x; intros.
@@ -8160,7 +8184,7 @@ Proof. intros s H.
            * subst.
              rewrite plus_O_n.
              rewrite H0 in *.
-             rewrite <- minus_n_O in *.
+             rewrite Nat.sub_0_r in *.
              assert(S (length xs) = length(xs ++ [false])).
              { rewrite app_length. simpl. lia. }
              rewrite H1 at 1.
@@ -8341,10 +8365,7 @@ Proof. intro a.
        - cbn. left. easy.
        - case_eq a; intros.
          + right. unfold bv2nat_a, list2nat_be_a.
-        	 Reconstr.rsimple (@Coq.Arith.Gt.gt_0_eq, @Coq.Arith.PeanoNat.Nat.add_0_l,
-           @Coq.NArith.Nnat.N2Nat.inj_succ_double) 
-          (@list2nat_be_a, 
-           @list2N).
+           simpl. lia.
          + unfold bv2nat_a, list2nat_be_a. destruct IHa.
            * left. 
 	           Reconstr.rblast (@Coq.NArith.Nnat.N2Nat.id, @list2N_N2List,
@@ -8377,7 +8398,7 @@ Proof.
   + easy.
   + induction y.
     - easy.
-    - simpl. pose proof ltxy as ltxy2. apply lt_S_n in ltxy2.
+    - simpl. pose proof ltxy as ltxy2. apply Nat.succ_lt_mono in ltxy2.
       pose proof ltxy2 as ltxSy. apply Nat.lt_lt_succ_r in ltxSy.
       apply IHx in ltxSy. rewrite <- ltxSy.
       rewrite mk_list_false_app. rewrite firstn_app. rewrite length_mk_list_false.
@@ -8386,7 +8407,7 @@ Proof.
         + easy.
         + induction m.
           - intros. now contradict H.
-          - intros. simpl. apply lt_S_n in H. specialize (@IHn m H). apply IHn.
+          - intros. simpl. apply Nat.succ_lt_mono in H. specialize (@IHn m H). apply IHn.
       }
       specialize (@H x y ltxy2). rewrite H. simpl. rewrite app_nil_r. easy.
 Qed.
@@ -8426,7 +8447,11 @@ Proof.
     case_eq ((list2nat_be_a (a :: b) <? length (mk_list_false (length (a :: b))))%nat);
         intros comp_b_lenb.
     - pose proof firstn_mk_list_false as firstn_mlf.
-      destruct (@gt_0_eq (list2nat_be_a (a :: b))).
+      destruct (@Nat.eq_0_gt_0_cases (list2nat_be_a (a :: b))).
+      * rewrite H. rewrite Nat.sub_0_r. rewrite length_mk_list_false.
+        assert (mk_list_false 0 = []) by easy. rewrite H0. rewrite app_nil_l.
+        pose proof (@firstn_all bool ((mk_list_false (length (a :: b))))).
+        rewrite length_mk_list_false in H1. apply H1.
       * rewrite length_mk_list_false.
         specialize (@firstn_mlf (length (a :: b) - list2nat_be_a (a :: b))%nat 
                                 (length (a :: b))).
@@ -8440,10 +8465,6 @@ Proof.
         specialize (@firstn_mlf lt). rewrite firstn_mlf. apply mk_list_false_app_minus.
         rewrite length_mk_list_false in comp_b_lenb. rewrite Nat.ltb_lt in comp_b_lenb.
         apply comp_b_lenb.
-      * rewrite <- H. rewrite Nat.sub_0_r. rewrite length_mk_list_false.
-        assert (mk_list_false 0 = []) by easy. rewrite H0. rewrite app_nil_l.
-        pose proof (@firstn_all bool ((mk_list_false (length (a :: b))))).
-        rewrite length_mk_list_false in H1. apply H1.
     - now rewrite length_mk_list_false.
 Qed.
 
@@ -8464,8 +8485,8 @@ Proof.
   simpl. unfold shl_n_bits_a.
   case_eq (0 <? length b)%nat; intros.
   + simpl. rewrite Nat.sub_0_r. now rewrite firstn_all.
-  + rewrite Nat.ltb_ge in H. apply (@le_n_0_eq (length b)) in H.
-    rewrite <- H. simpl. now apply length_zero_nil.
+  + rewrite Nat.ltb_ge in H. apply (@Nat.le_0_r (length b)) in H.
+    rewrite H. simpl. now apply length_zero_nil.
 Qed.
 
 
@@ -8794,7 +8815,7 @@ Qed.
 End RAWBITVECTOR_LIST.
 
 Module BITVECTOR_LIST <: BITVECTOR.
-
+  Declare Scope bv_scope.
   Include RAW2BITVECTOR(RAWBITVECTOR_LIST).
 
   Notation "x |0" := (cons false x) (left associativity, at level 73, format "x |0"): bv_scope.

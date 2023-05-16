@@ -17,4 +17,4 @@ To make:
 1. `coq_makefile -f _CoqProject -o Makefile`
 2. `make`
 
-Works with Coq version 8.17.0 with a bunch of deprecated warnings.
+Works with Coq version 8.17.0.
