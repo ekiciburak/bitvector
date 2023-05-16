@@ -62,7 +62,7 @@ but you might need to install some extra packages and libraries for your system
 (such as GTK2, gtksourceview2, etc.).
 
 
-### Install BVList and IC Proofs
+## Install BVList and IC Proofs
 Within root, run
 ```bash
 coq_makefile -f _CoqProject -o Makefile
