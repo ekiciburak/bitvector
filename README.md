@@ -17,4 +17,4 @@ To make:
 1. `coq_makefile -f _CoqProject -o Makefile`
 2. `make`
 
-Works with Coq8.16 with a bunch of deprecated warnings. I had to locally install coqhammer version coq8.16.
+Works with Coq version 8.17.0 with a bunch of deprecated warnings.
