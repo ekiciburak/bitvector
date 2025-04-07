@@ -4292,7 +4292,7 @@ Proof. intro n.
                @Coq.Arith.PeanoNat.Nat.leb_le, @Coq.Arith.PeanoNat.Nat.succ_le_mono)
               (@Coq.Init.Nat.min, @Coq.Init.Peano.lt).
            * rewrite app_length, length_pos2list_nil, H, length_mk_list_false.
-             rewrite Arith_prebase.le_plus_minus_stt with (n := S n).
+             rewrite Coq.Arith.Arith_base.le_plus_minus_stt with (n := S n).
              reflexivity.
              specialize(Arith.Compare_dec.leb_complete_conv); intro Ha.
              specialize(Ha n s H0).
@@ -5729,14 +5729,18 @@ Lemma bv_not_app : forall (x : bitvector) (b : bool),
 Proof.
   intros x b. induction x.
   + easy.
-  + simpl. rewrite IHx. easy. 
+  + simpl. unfold bv_not in IHx.
+    unfold bv_not. simpl. unfold bits in IHx.
+    simpl in IHx. rewrite IHx. easy. 
 Qed.
 
 Lemma rev_bvnot : forall x : bitvector, rev (bv_not x) = bv_not (rev x).
 Proof.
   intros x. induction x.
   + easy.
-  + simpl. rewrite bv_not_app. rewrite IHx. easy.
+  + simpl. rewrite bv_not_app. 
+    unfold bv_not, bits in IHx. 
+    rewrite IHx. easy.
 Qed. 
 
 Lemma hd_rev: forall a,
